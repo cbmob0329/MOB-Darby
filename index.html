@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>MOB KART 10</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+  <!-- 起動ロゴ（3秒・操作不可） -->
+  <div id="splash" class="splash">
+    <img src="assets/opening.png" alt="OPENING" />
+  </div>
+
+  <!-- 中間演出（選手紹介！／レース前） -->
+  <div id="preIntro" class="inter"><img src="assets/pre_intro.png" alt="選手紹介" /></div>
+  <div id="preStart" class="inter"><img src="assets/pre_start.png" alt="まもなく開始" /></div>
+
+  <!-- フローティング・スキップ（紹介中のみ表示） -->
+  <button class="skip floating" id="skipFloating" aria-label="紹介をスキップ">スキップ</button>
+
+  <div class="wrap">
+    <header class="board">
+      <img src="assets/board.png" alt="看板" class="board-img" />
+      <div class="wallet" id="walletBox">
+        <img src="assets/coin.png" alt="coin" class="coin" />
+        <div class="amt"><span id="walletAmt">0</span> コイン</div>
+      </div>
+    </header>
+
+    <!-- コース -->
+    <section class="track day" id="track">
+      <div class="finish"></div>
+      <div class="flag"></div>
+      <!-- ここにレーンがJSで挿入されます -->
+    </section>
+
+    <!-- ベット＆オッズ -->
+    <section class="panel">
+      <h2 class="panel-title">オッズ（単勝）</h2>
+      <table class="odds-table" id="oddsTable"></table>
+
+      <div class="bet-grid">
+        <div class="card">
+          <h3>単勝 その1</h3>
+          <label>キャラクター</label>
+          <select id="tansho1" disabled></select>
+          <label>枚数（最大1000）</label>
+          <input type="number" id="amt1" min="0" max="1000" value="0" inputmode="numeric" disabled />
+        </div>
+
+        <div class="card">
+          <h3>単勝 その2</h3>
+          <label>キャラクター</label>
+          <select id="tansho2" disabled></select>
+          <label>枚数（最大1000）</label>
+          <input type="number" id="amt2" min="0" max="1000" value="0" inputmode="numeric" disabled />
+        </div>
+
+        <div class="card">
+          <h3>連MOB（1→2位）</h3>
+          <label>1位</label>
+          <select id="ren1" disabled></select>
+          <label>2位</label>
+          <select id="ren2" disabled></select>
+          <label>枚数（最大1000）</label>
+          <input type="number" id="amtRen" min="0" max="1000" value="0" inputmode="numeric" disabled />
+          <div class="hint">推定オッズ：<span id="renOdds">--</span></div>
+        </div>
+
+        <div class="card">
+          <h3>3連MOB（1→2→3位）</h3>
+          <label>1位</label>
+          <select id="tri1" disabled></select>
+          <label>2位</label>
+          <select id="tri2" disabled></select>
+          <label>3位</label>
+          <select id="tri3" disabled></select>
+          <label>枚数（最大1000）</label>
+          <input type="number" id="amtTri" min="0" max="1000" value="0" inputmode="numeric" disabled />
+          <div class="hint">推定オッズ：<span id="triOdds">--</span></div>
+        </div>
+
+        <div class="card actions">
+          <h3>操作</h3>
+          <button class="btn" id="btnIntro" disabled>紹介をやり直す</button>
+          <button class="btn primary" id="btnBet" disabled>ベットを決定してレース開始</button>
+          <div id="msg" class="msg"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 紹介モーダル（1人ずつ） -->
+  <div class="intro" id="intro" aria-modal="true" role="dialog">
+    <div class="box">
+      <button class="skip" id="skipIntroBtn">スキップ</button>
+      <div class="inner slideIn">
+        <img id="introImg" alt="driver" />
+        <div class="lines">
+          <h2 id="introName"></h2>
+          <p id="introLine"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- カウントダウン -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="count" id="count">3</div>
+  </div>
+
+  <!-- リザルト -->
+  <div class="results" id="results">
+    <div class="res-card">
+      <h3>順位</h3>
+      <div class="rank" id="rankList"></div>
+      <div id="payout" class="payout"></div>
+    </div>
+  </div>
+
+  <!-- 的中 / ハズレ 演出 -->
+  <div class="payoutfx" id="payoutFx"><div class="msg" id="payoutFxMsg"></div></div>
+
+  <!-- 次のレース確認（中央） -->
+  <div class="confirm" id="nextConfirm" aria-modal="true" role="dialog">
+    <div class="confirm-box">
+      <h4>次のレースに進みますか？</h4>
+      <div class="btns">
+        <button class="btn" id="btnNo">いいえ</button>
+        <button class="btn primary" id="btnYes">はい</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/game.js"></script>
+</body>
+</html>
