@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>MOB Derby 画像対応版 v5</title>
+<title>MOB Derby 画像対応版 v6（フェールセーフ入り）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <style>
   :root{
@@ -14,7 +14,7 @@
   header{padding:10px 14px; background:linear-gradient(180deg,#0c0d11,#0a0b0e); border-bottom:1px solid #222834; display:flex; align-items:center; justify-content:space-between}
   header h1{font-size:16px;margin:0;letter-spacing:.5px}
   header .btn{font-size:12px;padding:6px 10px;border:1px solid #2b323d;border-radius:8px;background:#0f141a;color:var(--ink);cursor:pointer}
-  main{flex:1; position:relative; overflow:hidden}
+  main{flex:1; position:relative; overflow:hidden; min-height:60vh}
   .panel{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(920px,92vw); background:var(--panel); border:1px solid #222834; border-radius:14px; box-shadow:0 12px 36px rgba(0,0,0,.35)}
   .panel header{border-radius:14px 14px 0 0}
   .pbody{padding:14px}
@@ -32,13 +32,14 @@
   .splashLayer{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:50}
   .fadeIn{animation:fadeIn 3s forwards}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+
   /* レースエリア */
   #race{position:absolute; inset:0; display:none}
   #lanesWrap{position:absolute; left:0; right:0; bottom:0; top:140px; overflow:hidden}
-  #billboard{position:absolute; left:50%; transform:translateX(-50%); top:12px; width:min(1000px,94vw); height:100px; background:url('op.png') center/contain no-repeat; z-index:2; pointer-events:none}
+  #billboard{position:absolute; left:50%; transform:translateX(-50%); top:12px; width:min(1000px,94vw); height:100px; background:url('op.png') center/contain no-repeat, linear-gradient(90deg,#333,#222); z-index:2; pointer-events:none}
   #lanes{position:absolute; inset:0; background:#172028}
   .lane{position:relative; height:calc((100% - 9px)/10); border-top:1px dashed rgba(255,255,255,.08);}
-  .lane::before{content:""; position:absolute; inset:0; background:url('doro.png') center/cover no-repeat; opacity:.95}
+  .lane::before{content:""; position:absolute; inset:0; background:url('doro.png') center/cover no-repeat, linear-gradient(#2a2f36,#1b2129); opacity:.95}
   .runner{position:absolute; left:8px; top:50%; transform:translateY(-50%); width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:#000; box-shadow:0 6px 16px rgba(0,0,0,.35); overflow:hidden; background:#ddd}
   .runner img{width:100%; height:100%; object-fit:contain; image-rendering:auto}
   .flag{position:absolute; right:10px; top:120px; padding:6px 10px; border-radius:8px; background:#0f1319cc; border:1px solid #2b323d; color:var(--muted); font-size:12px; z-index:3}
@@ -57,21 +58,21 @@
   .tab.active{background:#0f1319}
   .stickyFooter{position:absolute; left:0; right:0; bottom:0; padding:12px; background:linear-gradient(180deg,rgba(20,22,26,0),#14161a 35%); display:flex; gap:10px}
   .scroll{max-height:min(62vh,520px); overflow:auto; padding-right:6px}
-  /* ベット画面 背景 */
-  .betBg{background:url('intro2.png') center/cover no-repeat}
+  .betBg{background:url('intro2.png') center/cover no-repeat, radial-gradient(60% 60% at 50% 10%,#222 0%,#15181d 60%,#0f1216 100%)}
+  .fallbackTitle{font-size:28px; font-weight:900; letter-spacing:.08em; text-align:center}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>MOB Derby 画像対応版 v5</h1>
+    <h1>MOB Derby 画像対応版 v6</h1>
     <button class="btn" id="btnReset">強制リセット</button>
   </header>
   <main id="stage"></main>
 </div>
 
 <!-- レース領域 -->
-<div id="race">
+<div id="race" aria-hidden="true">
   <div id="billboard"></div>
   <div class="count" id="count"></div>
   <div id="lanesWrap">
@@ -81,7 +82,7 @@
 </div>
 
 <script>
-/* 画像ファイル割当（index.htmlと同じフォルダ） */
+/* ========= 画像割当（index.html と同じフォルダ） ========= */
 const IMG = {
   title: "title.png",
   opBg: "op.png",
@@ -89,22 +90,13 @@ const IMG = {
   startLogo: "start.png",
   betBg: "intro2.png",
   course: "doro.png",
-  // 選手
   runner: {
-    1: "rai.png",
-    2: "ora.png",
-    3: "blue.png",
-    4: "gold.png",
-    5: "vr.png",
-    6: "pink.png",
-    7: "green.png",
-    8: "black.png",
-    9: "chi.png",
-    10:"redblue.png" // ※指定が無かったため redblue.png と仮定。ファイル名が異なる場合はここを修正してください。
+    1:"rai.png", 2:"ora.png", 3:"blue.png", 4:"gold.png", 5:"vr.png",
+    6:"pink.png",7:"green.png",8:"black.png",9:"chi.png", 10:"redblue.png" // ←要注意: レッドブルーのファイル名
   }
 };
 
-/* データ */
+/* ========= データ ========= */
 const CAST = [
  {id:1,  name:"レインボー",   vmax:155, rec:"S",  men:"B", tec:"A", kick:"B", stab:"A", color:"#ffe066"},
  {id:2,  name:"オレンジ",     vmax:151, rec:"B",  men:"B", tec:"B", kick:"B", stab:"B", color:"#ffa94d"},
@@ -128,67 +120,120 @@ const RANK_VAL = {"S+":1.25,"S":1.18,"A":1.12,"B":1.06,"C":1.00,"D":0.94,"E":0.8
 const MOOD_KEYS = ["worst","bad","normal","good","great"];
 const MOOD_VAL = {worst:0.90,bad:0.96,normal:1.00,good:1.05,great:1.12};
 const VIG = 0.15;
-let state = {};
 
-/* util */
+let state = {};
 const $ = s=>document.querySelector(s);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+/* ========= グローバルエラーハンドラ（真っ暗対策） ========= */
+window.addEventListener("error", e=>{
+  showErrorPanel(e.message || "Unknown error");
+});
+window.addEventListener("unhandledrejection", e=>{
+  showErrorPanel((e.reason && (e.reason.message||e.reason)) || "Unhandled rejection");
+});
+function showErrorPanel(msg){
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  panel.innerHTML = `
+    <header><h1>エラー</h1></header>
+    <div class="pbody">
+      <div style="color:#ff9aa7; font-weight:700; margin-bottom:8px;">スクリプトエラーが発生しました。</div>
+      <pre style="white-space:pre-wrap;background:#0d1117;border:1px solid #30363d;padding:10px;border-radius:8px;max-height:50vh;overflow:auto;">${String(msg)}</pre>
+      <div class="note" style="margin-top:8px">画像ファイル名の大小文字・スペル、index.html と同じフォルダ配置をご確認ください。</div>
+      <div class="grid two" style="margin-top:10px">
+        <button class="btnPrimary" id="retryBtn">再読み込み</button>
+        <button class="btnGhost" id="continueBtn">ゲームに戻る</button>
+      </div>
+    </div>`;
+  $("#stage").innerHTML = "";
+  $("#stage").appendChild(panel);
+  $("#retryBtn").onclick = ()=>location.reload();
+  $("#continueBtn").onclick = ()=>{ $("#stage").innerHTML=""; init().catch(err=>showErrorPanel(err)); };
+}
+
+/* ========= ユーティリティ ========= */
 function el(tag, attrs={}, ...kids){
   const n = document.createElement(tag);
   Object.entries(attrs).forEach(([k,v])=>{
-    if(k==="class") n.className=v; else if(k==="style") Object.assign(n.style,v); else n.setAttribute(k,v);
+    if(k==="class") n.className=v;
+    else if(k==="style") Object.assign(n.style,v);
+    else n.setAttribute(k,v);
   });
-  kids.forEach(k=>{ if(k==null) return; if(typeof k==="string") n.appendChild(document.createTextNode(k)); else n.appendChild(k); });
+  kids.forEach(k=>{
+    if(k==null) return;
+    if(typeof k==="string") n.appendChild(document.createTextNode(k));
+    else n.appendChild(k);
+  });
   return n;
 }
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
 function chipHTML(c){ return `<span class="chip"><span class="dot" style="background:${c.color}"></span>${c.id}. ${c.name}</span>`; }
+function pickLine(mood){ const arr=TALK[mood]; return arr[Math.floor(Math.random()*arr.length)]; }
+function weightedPick(keys,weights){
+  const sum = weights.reduce((a,b)=>a+b,0);
+  let r=Math.random()*sum;
+  for(let i=0;i<keys.length;i++){ if((r-=weights[i])<=0) return keys[i]; }
+  return keys[keys.length-1];
+}
 
-/* 起動：OP画面 → タイトルフェードイン3秒 → Yes/No */
-init();
-
+/* ========= 起動（OP→タイトル3秒→Yes/No） ========= */
+document.addEventListener("DOMContentLoaded", ()=>{
+  init().catch(err=>showErrorPanel(err));
+});
 async function init(){
-  // OP背景 + タイトル
+  // 安全に race を非表示
+  $("#race").style.display="none";
+  $("#race").setAttribute("aria-hidden","true");
+
+  // スプラッシュ（背景画像が無くてもグラデで見える）
   $("#stage").innerHTML = "";
-  const layer = el("div",{class:"splashLayer", id:"opLayer", style:{background:`url('${IMG.opBg}') center/cover no-repeat`}},
-    el("img",{src:IMG.title, alt:"title", class:"fadeIn", style:"width:min(600px,80vw); height:auto;"})
+  const layer = el("div",{class:"splashLayer", id:"opLayer",
+    style:{background:`url('${IMG.opBg}') center/cover no-repeat, radial-gradient(60% 60% at 50% 20%, #222 0%, #111 70%)`}},
+    // タイトル画像（失敗してもテキスト見出しが出る）
+    el("div",{style:{textAlign:"center"}},
+      el("img",{src:IMG.title, alt:"title", class:"fadeIn",
+                onerror:"this.style.display='none'; this.closest('div').querySelector('.fallbackTitle').style.display='block';",
+                style:"width:min(600px,80vw); height:auto; display:block; margin:0 auto;"}),
+      el("div",{class:"fallbackTitle", style:{display:"none", color:"#e6f0ff"}}, "MOB DERBY")
+    )
   );
   $("#stage").appendChild(layer);
-  // 3秒間操作不可
+
+  // 3秒後に Yes/No（画像が無くても必ず出る）
   await sleep(3000);
-  // Yes/No
   const menu = el("div",{style:{position:"absolute", left:"50%", top:"70%", transform:"translate(-50%,-50%)", display:"grid", gap:"10px", zIndex:60}},
     el("button",{class:"btnPrimary", id:"startYes", style:{width:"200px"}}, "はい"),
     el("button",{class:"btnGhost", id:"startNo", style:{width:"200px"}}, "いいえ")
   );
   $("#stage").appendChild(menu);
+
   $("#startYes").onclick = async ()=>{
     $("#opLayer").remove(); menu.remove();
     await showIntroLogoThenIntro();
   };
   $("#startNo").onclick = ()=>{
-    // 簡易終了画面
     $("#stage").innerHTML = `<div class="panel"><header><h1>終了</h1></header><div class="pbody">ご利用ありがとうございました。</div></div>`;
   };
 }
 
-/* 選手紹介！ロゴ → 2秒後に紹介開始 */
+/* ========= 選手紹介！ロゴ → 2秒 → 紹介 ========= */
 async function showIntroLogoThenIntro(){
-  const logo = el("div",{class:"centerLogo"}, el("img",{src:IMG.introLogo, alt:"intro"}));
+  const logo = el("div",{class:"centerLogo"},
+    el("img",{src:IMG.introLogo, alt:"intro", onerror:"this.style.display='none'; this.parentElement.innerHTML='<div class=fallbackTitle>選手紹介！</div>';"}));
   $("#stage").appendChild(logo);
   await sleep(2000);
   logo.remove();
   await showIntro();
 }
 
-/* イントロ（スキップ可） → ベット */
+/* ========= 紹介 → オッズ/ベット ========= */
 async function showIntro(){
-  $("#race").style.display="none";
   const wrap = el("div",{class:"panel", style:{width:"min(720px,92vw)"}},
     el("header",{}, el("h1",{}, "選手紹介")),
-    el("div",{class:"pbody scroll", id:"introList"})
-  );
+    el("div",{class:"pbody scroll", id:"introList"}));
   $("#stage").innerHTML=""; $("#stage").appendChild(wrap);
   const list = $("#introList");
+
   const skipBtn = el("button",{class:"btnPrimary btnBlock", id:"skipIntro"}, "▶ スキップしてベットへ");
   list.appendChild(skipBtn);
   skipBtn.onclick = ()=> proceedToOddsAndBet();
@@ -196,16 +241,17 @@ async function showIntro(){
   const head = el("div",{style:{textAlign:"center",margin:"10px 0 6px 0"}}, el("span",{class:"tag"},"2秒間 操作不可"));
   list.appendChild(head);
 
-  // 調子決定
+  // 調子決定（調子安定で分布バイアス）
   state.roster = CAST.map(c=>{
-    let weights=[1,2,5,2,1]; const sVal=RANK_VAL[c.stab]||1; const boost=sVal-1;
+    let weights=[1,2,5,2,1];
+    const sVal=RANK_VAL[c.stab]||1, boost=sVal-1;
     weights = weights.map((w,i)=> (w + (i===2?2.5:(i===3?2:(i===4?1.5:0)))*boost));
     const mood = weightedPick(MOOD_KEYS, weights);
     return {...c, mood, line: pickLine(mood)};
   });
 
   for(const r of state.roster){
-    if(state.skipped) return;
+    if(state.skipped) break;
     const card = el("div",{style:{padding:"12px", border:"1px solid #2b323d", borderRadius:"12px", marginBottom:"10px", background:"#0f1319", transform:"translateX(100%)", transition:"transform .35s ease"}},
       el("div",{style:{display:"flex",alignItems:"center",gap:"12px"}},
         el("div",{class:"chip"},
@@ -224,13 +270,11 @@ async function showIntro(){
   await proceedToOddsAndBet();
 }
 
-function pickLine(mood){ const arr=TALK[mood]; return arr[Math.floor(Math.random()*arr.length)]; }
-function weightedPick(keys,weights){ const sum=weights.reduce((a,b)=>a+b,0); let r=Math.random()*sum; for(let i=0;i<keys.length;i++){ if((r-=weights[i])<=0) return keys[i]; } return keys[keys.length-1]; }
-
-/* オッズ計算（Plackett–Luce） */
+/* ========= オッズ計算（Plackett–Luce） ========= */
 function computeFairProbs(roster){
-  const strengths = {}; roster.forEach(r=>{
-    const s = r.vmax * (RANK_VAL[r.men]||1)**0.35 * (RANK_VAL[r.tec]||1)**0.35 * (RANK_VAL[r.kick]||1)**0.25 * ( (r.mood&&MOOD_VAL[r.mood]) || 1);
+  const strengths = {};
+  roster.forEach(r=>{
+    const s = r.vmax * (RANK_VAL[r.men]||1)**0.35 * (RANK_VAL[r.tec]||1)**0.35 * (RANK_VAL[r.kick]||1)**0.25 * ((r.mood&&MOOD_VAL[r.mood])||1);
     strengths[r.id]=s;
   });
   const ids = roster.map(r=>r.id);
@@ -253,6 +297,7 @@ function computeFairProbs(roster){
 }
 function applyHouse(){ const cap=(x,min,max)=>Math.max(min,Math.min(max,x)); return p=> p<=0?99.99:cap((1/p)*(1-VIG),1.01,99.99); }
 
+/* ========= ベット画面 ========= */
 async function proceedToOddsAndBet(){
   state.skipped=true;
   $("#stage").innerHTML = `<div class="panel betBg"><header><h1>オッズ計算中…</h1></header><div class="pbody">少々お待ちください</div></div>`;
@@ -264,8 +309,6 @@ async function proceedToOddsAndBet(){
   };
   showBetUI();
 }
-
-/* ベットUI（背景に intro2.png / オッズは単勝だけ小さく） */
 function showBetUI(){
   $("#stage").innerHTML = `<div class="panel betBg">
     <header><h1>オッズ</h1></header>
@@ -300,8 +343,6 @@ function renderWinOddsSmall(od){
   const rows = CAST.map(c=>`<tr><td style="text-align:left">${chipHTML(c)}</td><td>${od.win[c.id].toFixed(2)}</td></tr>`).join("");
   return `<table class="oddsTable"><thead><tr><th style="text-align:left">単勝</th><th>オッズ</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
-
-/* ベットフォーム（EX/TRIはオッズ表示しない） */
 function renderBetForm(kind){
   const wrap = $("#betWrap"); wrap.innerHTML="";
   let form;
@@ -357,7 +398,6 @@ function selectChar(id){
   return s;
 }
 function setSel(id,val){ if(val!=null) $("#"+id).value=String(val); }
-
 function saveBetWin(){
   const sel = +$("#win_sel").value||null;
   let amt = +$("#win_amt").value||0;
@@ -391,25 +431,23 @@ function updateReady(){
   $("#btnReady")?.toggleAttribute("disabled", !has);
 }
 
-/* スタート前：start.png を2秒表示 → カウントダウン */
+/* ========= スタート前ロゴ → カウントダウン ========= */
 async function prepStart(){
   state.betsFinal = JSON.parse(JSON.stringify(state.bets));
   $("#stage").innerHTML = "";
   $("#race").style.display="block";
+  $("#race").setAttribute("aria-hidden","false");
   $("#lanes").innerHTML="";
   $("#flag").textContent="距離：0%";
-  // レーン生成
   CAST.forEach(c=>{
     const lane = el("div",{class:"lane"});
     const run  = el("div",{class:"runner", id:"r"+c.id});
-    const img = el("img",{src:IMG.runner[c.id], alt:c.name, onerror:"this.style.display='none'"});
+    const img = el("img",{src:IMG.runner[c.id], alt:c.name, onerror:"this.style.display='none'"}); // 画像が無くても動く
     run.appendChild(img);
     lane.appendChild(run);
     $("#lanes").appendChild(lane);
   });
-  // 看板背景はCSSの #billboard 背景（op.png）を使用
-  // スタート直前ロゴ
-  const logo = el("div",{class:"centerLogo"}, el("img",{src:IMG.startLogo, alt:"start"}));
+  const logo = el("div",{class:"centerLogo"}, el("img",{src:IMG.startLogo, alt:"start", onerror:"this.style.display='none'; this.parentElement.innerHTML='<div class=fallbackTitle>まもなくレース開始！</div>';"}));
   $("#race").appendChild(logo);
   await sleep(2000);
   logo.remove();
@@ -424,23 +462,25 @@ async function startCountdown(){
   await runRace();
 }
 
-/* レース本体（ユニット距離で20秒前後、レーン毎にdoro.png） */
+/* ========= レース本体（18〜28秒） ========= */
 async function runRace(){
   const lanesW = $("#lanes").clientWidth;
   const goalPx = lanesW - 80;
   const TRACK = 1000;
   const duration = 18000 + Math.random()*10000; // 18〜28s
   const avgTargetSpeed = TRACK / (duration/1000);
+
   const P = {};
   let sumBase=0;
-  state.roster.forEach(r=>{
+  (state.roster||CAST).forEach(r=>{
     const mood = (MOOD_VAL[r.mood] || 1);
     const base = 40 * Math.pow(r.vmax/155, 0.5) * Math.pow(RANK_VAL[r.men]||1,0.25) * Math.pow(RANK_VAL[r.tec]||1,0.25) * mood;
     P[r.id]={x:0, v:base, vmax:base*1.4, men:RANK_VAL[r.men]||1, tec:RANK_VAL[r.tec]||1, kick:RANK_VAL[r.kick]||1, stab:RANK_VAL[r.stab]||1};
     sumBase += base;
   });
-  const avgBase = sumBase / state.roster.length;
+  const avgBase = sumBase / CAST.length;
   const globalScale = avgTargetSpeed / avgBase;
+
   let mid=false;
   const t0=performance.now();
   return new Promise(resolve=>{
@@ -449,6 +489,7 @@ async function runRace(){
       const elapsed = t - t0;
       const prog = Math.min(1, elapsed/duration);
       const anyMid = Object.values(P).some(p=>p.x>=TRACK*0.5); if(anyMid&&!mid) mid=true;
+
       Object.keys(P).forEach(id=>{
         const p=P[id];
         const jitter = (0.98 + 0.04*Math.random()) * (1 - (p.tec-1)*0.10) * (1 - (p.men-1)*0.08);
@@ -463,14 +504,17 @@ async function runRace(){
         const px = (p.x/TRACK) * goalPx;
         $("#r"+id).style.left = (8+px)+"px";
       });
+
       const leadX = Math.max(...Object.values(P).map(p=>p.x));
       $("#flag").textContent = `距離：${Math.round(leadX/TRACK*100)}%`;
+
       const done = Object.values(P).every(p=>p.x>=TRACK-0.1);
       if(done){ resolve(finish()); return; }
       requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
   });
+
   function finish(){
     const order = Object.entries(P).map(([id,p])=>({id:+id, x:p.x + Math.random()*0.001})).sort((a,b)=>b.x-a.x).map(o=>o.id);
     state.finish = order;
@@ -478,12 +522,13 @@ async function runRace(){
   }
 }
 
-/* 結果 & ペイアウト */
+/* ========= 結果 & ペイアウト ========= */
 function showResult(){
   const order=state.finish;
   const list = order.map((id,i)=>`<div>${i+1}位　${chipHTML(CAST.find(x=>x.id===id))}</div>`).join("");
   const {payout,hitText}=settleBets(order);
   $("#race").style.display="none";
+  $("#race").setAttribute("aria-hidden","true");
   $("#stage").innerHTML = `<div class="panel">
     <header><h1>順位発表</h1></header>
     <div class="pbody">
@@ -528,6 +573,7 @@ function askNext(){
   $("#no").onclick = ()=>{ $("#stage").innerHTML = `<div class="panel"><header><h1>終了</h1></header><div class="pbody">ご利用ありがとうございました。</div></div>`; };
 }
 
+/* ========= 便利 ========= */
 $("#btnReset").onclick = ()=>location.reload();
 </script>
 </body>
