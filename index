@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>MOB Derby 完全版</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<style>
+  :root{
+    --bg:#14161a; --panel:#1c2027; --ink:#eaf2ff; --muted:#9fb0c9;
+    --acc:#13c4ff; --ok:#47d764; --bad:#ff5c7a; --warn:#ffcf4d;
+  }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Sans","Yu Gothic",sans-serif}
+  #app{position:fixed; inset:0; display:flex; flex-direction:column}
+  header{padding:10px 14px; background:linear-gradient(180deg,#101317,#0c0e11); border-bottom:1px solid #242a33; display:flex; align-items:center; justify-content:space-between}
+  header h1{font-size:16px;margin:0;letter-spacing:.5px}
+  header .btn{font-size:12px;padding:6px 10px;border:1px solid #2b323d;border-radius:8px;background:#161a20;color:var(--ink)}
+  main{flex:1; position:relative; overflow:hidden}
+  .center{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center}
+  .splash{font-size:36px; font-weight:800; letter-spacing:2px; text-shadow:0 6px 24px rgba(0,0,0,.4)}
+  .sub{opacity:.9; margin-top:8px}
+  .panel{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(980px,92vw); background:var(--panel); border:1px solid #2a303a; border-radius:14px; box-shadow:0 12px 36px rgba(0,0,0,.35)}
+  .panel header{border-radius:14px 14px 0 0}
+  .pbody{padding:14px}
+  .row{display:flex; gap:10px; flex-wrap:wrap}
+  .tag{display:inline-block; padding:2px 8px; border:1px solid #2b323d; border-radius:999px; font-size:12px; color:var(--muted)}
+  .btnPrimary{background:var(--acc); color:#001018; border:0; border-radius:10px; padding:12px 18px; font-weight:700; letter-spacing:.5px}
+  .btnGhost{background:#11151b; color:var(--ink); border:1px solid #2b323d; border-radius:10px; padding:12px 18px; font-weight:700}
+  .btnBlock{display:block; width:100%}
+  .grid{display:grid; gap:10px}
+  .grid.two{grid-template-columns:1fr 1fr}
+  .grid.three{grid-template-columns:repeat(3,1fr)}
+  .grid.auto{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .oddsTable{width:100%; border-collapse:collapse; font-size:14px}
+  .oddsTable th,.oddsTable td{border-bottom:1px solid #2b323d; padding:8px 6px; text-align:center}
+  .note{font-size:12px; color:var(--muted)}
+  /* レースエリア */
+  #race{position:absolute; inset:0; display:none}
+  #lanes{position:absolute; left:0; right:0; bottom:0; top:140px; background:linear-gradient(#182028,#161c23); border-top:1px solid #2a303a}
+  .lane{position:relative; height:calc((100% - 9px)/10); border-top:1px dashed #2d3440}
+  .runner{position:absolute; left:8px; top:50%; transform:translateY(-50%); width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#000; box-shadow:0 6px 16px rgba(0,0,0,.35)}
+  .flag{position:absolute; right:10px; top:8px; padding:4px 8px; border-radius:8px; background:#0f1319; border:1px solid #2b323d; color:var(--muted); font-size:12px}
+  .count{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); font-size:52px; font-weight:900; text-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .resultList{font-size:18px; line-height:1.7}
+  .pay{font-size:22px; font-weight:900; margin-top:12px}
+  .good{color:var(--ok)} .bad{color:var(--bad)}
+  /* 小さな“仮”アイコン（色＋頭文字） */
+  .chip{display:inline-flex; align-items:center; gap:6px}
+  .dot{width:20px; height:20px; border-radius:6px; display:inline-block; vertical-align:middle}
+  /* 入力 */
+  input,select{background:#0f1319; color:var(--ink); border:1px solid #2b323d; border-radius:8px; padding:10px 12px; width:100%}
+  label{font-size:12px; color:var(--muted)}
+  .tabs{display:flex; gap:6px; margin-bottom:8px}
+  .tab{flex:1; text-align:center; padding:10px; border:1px solid #2b323d; border-radius:10px; cursor:pointer; user-select:none}
+  .tab.active{background:#0f1319}
+  .stickyFooter{position:absolute; left:0; right:0; bottom:0; padding:12px; background:linear-gradient(180deg,rgba(20,22,26,0),#14161a 35%); display:flex; gap:10px}
+  .scroll{max-height:min(62vh,520px); overflow:auto; padding-right:6px}
+  /* モバイル調整 */
+  @media (max-width:620px){
+    .splash{font-size:28px}
+    .grid.three{grid-template-columns:1fr}
+    .grid.two{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>MOB Derby 完全版</h1>
+    <button class="btn" id="btnReset">強制リセット</button>
+  </header>
+  <main id="stage">
+    <div class="center" id="introSplash">
+      <div class="splash">選手紹介！</div>
+      <div class="sub">2秒間 操作不可...</div>
+    </div>
+    <!-- 紹介・オッズ・ベットなどを差し替えで表示 -->
+  </main>
+</div>
+
+<!-- レース画面 -->
+<div id="race">
+  <div class="count" id="count">3</div>
+  <div id="lanes"></div>
+  <div class="flag" id="flag">距離：100%</div>
+</div>
+
+<script>
+/* -------------------------
+   データ定義
+------------------------- */
+const CAST = [
+ {id:1,  name:"レインボー",   vmax:155, rec:"S",  men:"B", tec:"A", kick:"B", stab:"A", color:"#ffe066"},
+ {id:2,  name:"オレンジ",     vmax:151, rec:"B",  men:"B", tec:"B", kick:"B", stab:"B", color:"#ffa94d"},
+ {id:3,  name:"ブルー",       vmax:149, rec:"C",  men:"A", tec:"A", kick:"C", stab:"S", color:"#74c0fc"},
+ {id:4,  name:"ゴールド",     vmax:180, rec:"C",  men:"E", tec:"S", kick:"S", stab:"D", color:"#ffd43b"},
+ {id:5,  name:"VR",           vmax:160, rec:"A",  men:"A", tec:"A", kick:"A", stab:"A", color:"#94d82d"},
+ {id:6,  name:"ピンク",       vmax:149, rec:"B",  men:"S", tec:"D", kick:"S", stab:"S+",color:"#f783ac"},
+ {id:7,  name:"グリーン",     vmax:153, rec:"C",  men:"C", tec:"A", kick:"S+",stab:"B", color:"#69db7c"},
+ {id:8,  name:"ブラック",     vmax:162, rec:"B",  men:"S", tec:"A", kick:"S", stab:"B", color:"#ced4da"},
+ {id:9,  name:"中華店主",     vmax:153, rec:"C",  men:"B", tec:"S", kick:"S", stab:"A", color:"#ffd8a8"},
+ {id:10, name:"レッドブルー", vmax:170, rec:"S",  men:"A", tec:"C", kick:"A", stab:"B", color:"#ff8787"},
+];
+const TALK = {
+  great:["負ける気がしません","私がNo.1です","今日という日に感謝"],
+  good:["素晴らしい目覚めです","期待しててください","良いレースを見せます"],
+  normal:["ベストを尽くします","全力で挑みます","応援よろしくお願いします"],
+  bad:["さあ始めましょう","ちょうどいいハンデだ","気持ちが大事だ"],
+  worst:["今朝の牛乳か..？","神に祈る","こんな日もある"]
+};
+const RANK_VAL = {"S+":1.25,"S":1.18,"A":1.12,"B":1.06,"C":1.00,"D":0.94,"E":0.88};
+const MOOD_KEYS = ["worst","bad","normal","good","great"];
+const MOOD_VAL = {worst:0.90,bad:0.96,normal:1.00,good:1.05,great:1.12};
+const VIG = 0.15;          // 控除率
+const SIM_N = 4000;        // オッズ推定用レース数
+let state = {};            // レース状態（調子・オッズ・ベットなど）
+
+/* -------------------------
+   ユーティリティ
+------------------------- */
+const $ = s=>document.querySelector(s);
+function el(tag, attrs={}, ...kids){
+  const n = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>{
+    if(k==="class") n.className=v; else if(k==="style") Object.assign(n.style,v); else n.setAttribute(k,v);
+  });
+  kids.forEach(k=>{ if(k==null) return; if(typeof k==="string") n.appendChild(document.createTextNode(k)); else n.appendChild(k); });
+  return n;
+}
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const rand = (a=1,b=0)=>Math.random()*(a-b)+b;
+
+/* -------------------------
+   流れ：選手紹介 → オッズ → ベット → レース → 結果
+------------------------- */
+init();
+
+async function init(){
+  $("#stage").innerHTML = `<div class="center">
+    <div class="splash">選手紹介！</div>
+    <div class="sub">2秒間 操作不可...</div>
+  </div>`;
+  $("#race").style.display="none";
+  // 調子の決定（調子安定が高いほど悪い引きをしにくい）
+  state.roster = CAST.map(c=>{
+    const stab = c.stab; // 調子安定
+    // ベース分布
+    let weights = [1,2,5,2,1]; // worst,bad,normal,good,great
+    // 安定が高いと中央寄り、S+はさらにgood/great寄り
+    const sVal = RANK_VAL[stab] || 1.0;
+    const boost = sVal - 1.0; // 0〜0.25
+    weights = weights.map((w,i)=>{
+      // 中央(Normal)とGood/Greatを少し増やす
+      const bias = (i===2?2.5:(i===3?2.0:(i===4?1.5:0))) * boost;
+      return Math.max(0.5, w + bias);
+    });
+    const pick = weightedPick(MOOD_KEYS, weights);
+    const line = pickLine(pick);
+    return {...c, mood:pick, line};
+  });
+
+  // 紹介アニメ
+  await showIntro();
+
+  // オッズ計算（モンテカルロ）
+  $("#stage").innerHTML = panelOdds("オッズ計算中…");
+  await sleep(50);
+  state.odds = await computeOdds(state.roster);
+
+  // ベット画面
+  showBetUI();
+}
+
+// 紹介：全員分 1体ずつスライド＆セリフ（2秒固定）
+async function showIntro(){
+  const wrap = el("div",{class:"panel", style:{width:"min(720px,92vw)"}},
+    el("header",{}, el("h1",{}, "選手紹介")),
+    el("div",{class:"pbody scroll", id:"introList"})
+  );
+  $("#stage").innerHTML = ""; $("#stage").appendChild(wrap);
+  const list = $("#introList");
+  const head = el("div",{class:"center", style:{inset:"auto auto auto auto", position:"static", textAlign:"center", margin:"10px 0 4px 0"}},
+                  el("div",{class:"tag"},"2秒間 操作不可"));
+  list.appendChild(head);
+  for(const r of state.roster){
+    const card = cardIntro(r);
+    list.appendChild(card);
+    await sleep(2000);
+  }
+}
+
+// カード：紹介1人分
+function cardIntro(r){
+  const chip = chipChar(r);
+  const talk = el("div",{style:{fontSize:"18px",marginTop:"8px"}}, r.line);
+  const row = el("div",{style:{display:"flex",alignItems:"center",gap:"12px"}},
+    chip,
+    el("div",{}, el("div",{style:{fontSize:"18px",fontWeight:800}}, r.name),
+                 el("div",{class:"note"},"※ 調子は画面には表示されません（セリフで推測）"))
+  );
+  const box = el("div",{style:{padding:"12px", border:"1px solid #2b323d", borderRadius:"12px", marginBottom:"10px", background:"#0f1319", transform:"translateX(100%)", transition:"transform .35s ease"}},
+    row, talk
+  );
+  // スライドイン
+  requestAnimationFrame(()=>{ box.style.transform="translateX(0)"; });
+  return box;
+}
+
+// オッズ表示パネル
+function panelOdds(title){
+  return `<div class="panel">
+    <header><h1>${title||"オッズ"}</h1></header>
+    <div class="pbody scroll" id="oddsBody"></div>
+    <div class="stickyFooter">
+      <button class="btnPrimary btnBlock" id="toBet">ベットに進む</button>
+    </div>
+  </div>`;
+}
+
+// ベットUI
+function showBetUI(){
+  $("#stage").innerHTML = `<div class="panel">
+    <header><h1>オッズ</h1></header>
+    <div class="pbody scroll">
+      ${renderOddsTables(state.odds)}
+      <hr style="border:0;border-top:1px solid #2b323d;opacity:.6;margin:12px 0">
+      <div class="tabs" id="tabs">
+        <div class="tab active" data-tab="win">単勝</div>
+        <div class="tab" data-tab="ex">2連（1→2）</div>
+        <div class="tab" data-tab="tri">3連（1→2→3）</div>
+      </div>
+      <div id="betWrap"></div>
+      <div class="note" style="margin-top:10px">※各種ベットは最大1000コインまで。連MOBは的中以外無効。</div>
+    </div>
+    <div class="stickyFooter">
+      <button class="btnGhost btnBlock" id="btnClear">ベットをクリア</button>
+      <button class="btnPrimary btnBlock" id="btnReady" disabled>レース開始</button>
+    </div>
+  </div>`;
+
+  state.bets = {win:null, ex:null, tri:null};
+  renderBetForm("win");
+  $("#tabs").addEventListener("click", e=>{
+    const t = e.target.closest(".tab"); if(!t) return;
+    $("#tabs .active")?.classList.remove("active"); t.classList.add("active");
+    renderBetForm(t.dataset.tab);
+  });
+  $("#btnClear").onclick = ()=>{ state.bets={win:null,ex:null,tri:null}; renderBetForm($("#tabs .active").dataset.tab); updateReady(); };
+  $("#btnReady").onclick = startCountdown;
+
+  updateReady();
+}
+
+// オッズ表レンダリング
+function renderOddsTables(od){
+  // 単勝
+  const winRows = CAST.map(c=>{
+    const o = od.win[c.id];
+    return `<tr><td>${chipHTML(c)}</td><td>${o.toFixed(2)}</td></tr>`;
+  }).join("");
+  // 2連（上位20組程度のみ表示）
+  const exList = topPairs(od.ex, 20).map(([k,o])=>{
+    const [a,b]=k.split("-").map(Number);
+    return `<tr><td>${chipHTML(id2c(a))} → ${chipHTML(id2c(b))}</td><td>${o.toFixed(2)}</td></tr>`;
+  }).join("");
+  // 3連（上位20組程度のみ表示）
+  const triList = topPairs(od.tri, 20).map(([k,o])=>{
+    const [a,b,c]=k.split("-").map(Number);
+    return `<tr><td>${chipHTML(id2c(a))} → ${chipHTML(id2c(b))} → ${chipHTML(id2c(c))}</td><td>${o.toFixed(2)}</td></tr>`;
+  }).join("");
+
+  return `
+  <div class="grid three">
+    <div>
+      <div class="tag">単勝</div>
+      <table class="oddsTable"><thead><tr><th>キャラ</th><th>オッズ</th></tr></thead><tbody>${winRows}</tbody></table>
+    </div>
+    <div>
+      <div class="tag">2連（1→2）上位</div>
+      <table class="oddsTable"><thead><tr><th>組み合わせ</th><th>オッズ</th></tr></thead><tbody>${exList}</tbody></table>
+    </div>
+    <div>
+      <div class="tag">3連（1→2→3）上位</div>
+      <table class="oddsTable"><thead><tr><th>組み合わせ</th><th>オッズ</th></tr></thead><tbody>${triList}</tbody></table>
+    </div>
+  </div>`;
+}
+function topPairs(mapObj, n){
+  return Object.entries(mapObj).sort((a,b)=>a[1]-b[1]).slice(0,n);
+}
+
+// ベットフォーム
+function renderBetForm(kind){
+  const wrap = $("#betWrap"); wrap.innerHTML="";
+  let form;
+  if(kind==="win"){
+    form = el("div",{},
+      el("label",{},"単勝：1体を選択"),
+      selectChar("win_sel"),
+      el("label",{},"ベット額（0〜1000）"),
+      el("input",{type:"number", id:"win_amt", min:0, max:1000, value: state.bets.win?.amt??0}),
+      el("div",{class:"note", id:"win_od"},"選択中のオッズ：—")
+    );
+  }else if(kind==="ex"){
+    form = el("div",{},
+      el("label",{},"2連：1位 → 2位（順番固定）"),
+      el("div",{class:"row"},
+        selectChar("ex_a"), selectChar("ex_b")
+      ),
+      el("label",{},"ベット額（0〜1000）"),
+      el("input",{type:"number", id:"ex_amt", min:0, max:1000, value: state.bets.ex?.amt??0}),
+      el("div",{class:"note", id:"ex_od"},"選択中のオッズ：—")
+    );
+  }else{
+    form = el("div",{},
+      el("label",{},"3連：1位 → 2位 → 3位（順番固定）"),
+      el("div",{class:"row"},
+        selectChar("tri_a"), selectChar("tri_b"), selectChar("tri_c")
+      ),
+      el("label",{},"ベット額（0〜1000）"),
+      el("input",{type:"number", id:"tri_amt", min:0, max:1000, value: state.bets.tri?.amt??0}),
+      el("div",{class:"note", id:"tri_od"},"選択中のオッズ：—")
+    );
+  }
+  wrap.appendChild(form);
+
+  // 既存選択の反映
+  if(state.bets.win){ setSelVal("win_sel", state.bets.win.sel); $("#win_amt").value=state.bets.win.amt; }
+  if(state.bets.ex){ setSelVal("ex_a", state.bets.ex.a); setSelVal("ex_b", state.bets.ex.b); $("#ex_amt").value=state.bets.ex.amt; }
+  if(state.bets.tri){ ["a","b","c"].forEach(k=>setSelVal("tri_"+k, state.bets.tri[k])); $("#tri_amt").value=state.bets.tri.amt; }
+
+  // 監視
+  if(kind==="win"){
+    $("#win_sel").oninput = ()=>saveBetWin();
+    $("#win_amt").oninput = ()=>saveBetWin();
+    saveBetWin();
+  }else if(kind==="ex"){
+    $("#ex_a").oninput = ()=>saveBetEx();
+    $("#ex_b").oninput = ()=>saveBetEx();
+    $("#ex_amt").oninput = ()=>saveBetEx();
+    saveBetEx();
+  }else{
+    ["tri_a","tri_b","tri_c"].forEach(id=>$( "#"+id).oninput = ()=>saveBetTri());
+    $("#tri_amt").oninput = ()=>saveBetTri();
+    saveBetTri();
+  }
+}
+
+function selectChar(id){
+  const s = el("select",{id});
+  s.appendChild(el("option",{value:""}, "— 選択 —"));
+  CAST.forEach(c=>{
+    s.appendChild(el("option",{value:c.id}, `${c.id}. ${c.name}`));
+  });
+  return s;
+}
+function setSelVal(id,val){ if(val!=null) $("#"+id).value=String(val); }
+
+function saveBetWin(){
+  const sel = +$("#win_sel").value||null;
+  let amt = +$("#win_amt").value||0;
+  if(amt<0) amt=0; if(amt>1000) amt=1000;
+  $("#win_amt").value=amt;
+  state.bets.win = sel? {type:"win", sel, amt} : null;
+  $("#win_od").textContent = sel? `選択中のオッズ：${state.odds.win[sel].toFixed(2)}` : "選択中のオッズ：—";
+  updateReady();
+}
+function saveBetEx(){
+  const a = +$("#ex_a").value||null;
+  const b = +$("#ex_b").value||null;
+  let amt = +$("#ex_amt").value||0;
+  if(amt<0) amt=0; if(amt>1000) amt=1000; $("#ex_amt").value=amt;
+  if(a && b && a!==b){ state.bets.ex = {type:"ex", a,b, amt}; }
+  else state.bets.ex = null;
+  const key = (state.bets.ex)? `${a}-${b}` : null;
+  $("#ex_od").textContent = key? `選択中のオッズ：${(state.odds.ex[key]||0).toFixed(2)}` : "選択中のオッズ：—";
+  updateReady();
+}
+function saveBetTri(){
+  const a = +$("#tri_a").value||null;
+  const b = +$("#tri_b").value||null;
+  const c = +$("#tri_c").value||null;
+  let amt = +$("#tri_amt").value||0;
+  if(amt<0) amt=0; if(amt>1000) amt=1000; $("#tri_amt").value=amt;
+  if(a && b && c && a!==b && a!==c && b!==c){ state.bets.tri = {type:"tri", a,b,c, amt}; }
+  else state.bets.tri = null;
+  const key = (state.bets.tri)? `${a}-${b}-${c}` : null;
+  $("#tri_od").textContent = key? `選択中のオッズ：${(state.odds.tri[key]||0).toFixed(2)}` : "選択中のオッズ：—";
+  updateReady();
+}
+function updateReady(){
+  const has = state.bets.win || state.bets.ex || state.bets.tri;
+  $("#btnReady")?.toggleAttribute("disabled", !has);
+}
+
+function id2c(id){ return CAST.find(x=>x.id===id); }
+function chipChar(c){
+  return el("div",{class:"chip"},
+    el("span",{class:"dot", style:{background:c.color}}),
+    el("span",{}, `${c.id}. ${c.name}`)
+  );
+}
+function chipHTML(c){
+  return `<span class="chip"><span class="dot" style="background:${c.color}"></span>${c.id}. ${c.name}</span>`;
+}
+
+function pickLine(mood){
+  const arr = TALK[mood];
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+function weightedPick(keys,weights){
+  const sum = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random()*sum;
+  for(let i=0;i<keys.length;i++){
+    if((r-=weights[i])<=0) return keys[i];
+  }
+  return keys[keys.length-1];
+}
+
+/* -------------------------
+   オッズ計算（モンテカルロ）
+------------------------- */
+async function computeOdds(roster){
+  // シミュレーションして順位確率・組合せ確率を推定
+  const winCount = {}; const exCount={}; const triCount={};
+  CAST.forEach(c=>winCount[c.id]=0);
+
+  function oneRaceOrder(){
+    // 各キャラに「期待速度」を算出（調子・ステータス反映）
+    const players = roster.map(r=>{
+      const moodMul = MOOD_VAL[r.mood] || 1.0;
+      const base = r.vmax * moodMul * (RANK_VAL[r.men]??1) ** 0.15 * (RANK_VAL[r.tec]??1) ** 0.15;
+      // 実績は天候/トラブル適応（ここでは微小ノイズ軽減）
+      const stable = (RANK_VAL[r.stab]??1);
+      const noise = (1 - rand(0.08, -0.08)) * (1 - (stable-1)*0.3);
+      const kick = (RANK_VAL[r.kick]??1);
+      const perf = base * noise * (0.7 + 0.6*Math.random()) * (0.8 + 0.5*(kick-0.9));
+      return {id:r.id, perf};
+    });
+    // 順位は perf 降順（同値はランダム微調整）
+    players.forEach(p=>p.perf *= (0.98+0.04*Math.random()));
+    players.sort((a,b)=>b.perf-a.perf);
+    return players.map(p=>p.id);
+  }
+
+  for(let i=0;i<SIM_N;i++){
+    const order = oneRaceOrder();
+    const [a,b,c] = order;
+    winCount[a] = (winCount[a]||0)+1;
+    exCount[`${a}-${b}`] = (exCount[`${a}-${b}`]||0)+1;
+    triCount[`${a}-${b}-${c}`] = (triCount[`${a}-${b}-${c}`]||0)+1;
+  }
+  // 確率→オッズ（十進／控除率適用）
+  const winOdds = {};
+  Object.entries(winCount).forEach(([id,ct])=>{
+    const p = ct / SIM_N;
+    winOdds[id] = fairToDecimal(p, VIG);
+  });
+  const exOdds = {};
+  Object.entries(exCount).forEach(([k,ct])=>{
+    const p = ct / SIM_N;
+    exOdds[k] = fairToDecimal(p, VIG);
+  });
+  const triOdds = {};
+  Object.entries(triCount).forEach(([k,ct])=>{
+    const p = ct / SIM_N;
+    triOdds[k] = fairToDecimal(p, VIG);
+  });
+  return {win:winOdds, ex:exOdds, tri:triOdds};
+}
+function fairToDecimal(p, vig){
+  // 公平オッズ 1/p に控除を掛ける（=還元率(1-vig)）
+  if(p<=0) return 99.99;
+  const dec = (1/p) * (1 - vig);
+  return Math.max(1.01, Math.min(99.99, dec));
+}
+
+/* -------------------------
+   レース開始（カウントダウン→進行→結果）
+------------------------- */
+async function startCountdown(){
+  // ベット確定
+  state.betsFinal = JSON.parse(JSON.stringify(state.bets));
+  $("#stage").innerHTML = "";
+  $("#race").style.display="block";
+  $("#lanes").innerHTML="";
+  $("#flag").textContent="距離：0%";
+  // ランナー生成
+  const W = $("#lanes").clientWidth;
+  CAST.forEach((c,i)=>{
+    const lane = el("div",{class:"lane"});
+    const run = el("div",{class:"runner", id:"r"+c.id, style:{background:c.color}}, initials(c.name));
+    // 画像差し替え例：
+    // run.style.backgroundImage = 'url(assets/xxx.png)'; run.style.backgroundSize='cover'; run.style.color='transparent';
+    lane.appendChild(run);
+    $("#lanes").appendChild(lane);
+  });
+  // カウントダウン
+  const cnt = $("#count");
+  for(const v of ["3","2","1","GO"]){
+    cnt.textContent=v;
+    await sleep(900);
+  }
+  cnt.textContent="";
+  // 走る！
+  await runRace();
+}
+
+function initials(name){
+  // 簡易：先頭2文字（日本語は1-2文字）
+  return name.slice(0,2);
+}
+
+async function runRace(){
+  const lanesW = $("#lanes").clientWidth;
+  const goalX = lanesW - 64; // 右端少し手前
+  // レース時間 10〜20秒 → tick 16ms くらい
+  const duration = rand(20000,10000);
+  const t0 = performance.now();
+  const roster = state.roster;
+
+  // 個別パラメータ（中盤以降の追い込み・メンタル・テクで揺らぐ）
+  const P = {};
+  roster.forEach(r=>{
+    P[r.id] = {
+      x:8, v: 0,
+      vmax: r.vmax * (MOOD_VAL[r.mood]||1),
+      men:  RANK_VAL[r.men]||1,
+      tec:  RANK_VAL[r.tec]||1,
+      kick: RANK_VAL[r.kick]||1,
+      stab: RANK_VAL[r.stab]||1,
+      mood: r.mood
+    };
+  });
+
+  let midBoosted = false;
+  return new Promise(resolve=>{
+    function step(t){
+      const dt = Math.min(40, t - (step._last||t0)); step._last = t;
+      const elapsed = t - t0;
+      const prog = Math.min(1, elapsed / duration);
+      // 誰かが中盤越えたら全体ブースト
+      const anyMid = Object.values(P).some(p=>p.x >= goalX*0.5);
+      if(anyMid && !midBoosted){ midBoosted=true; }
+      // ランダムゆらぎ・トラブル回避
+      const ids = Object.keys(P);
+      ids.forEach(id=>{
+        const p = P[id];
+        // 基礎スピード：通常120相当 → vmax をベースに補正
+        const usual = 120;
+        const target = (usual + (p.vmax - usual)*0.75) * (0.9 + 0.2*Math.random());
+        // テクニック＆メンタルでブレを抑制
+        const jitter = (0.96 + 0.08*Math.random()) * (1 - (p.tec-1)*0.15) * (1 - (p.men-1)*0.12);
+        // 中盤以降キック（追い込み）を反映（後半ほど強い）
+        const kickGain = 1 + (p.kick-1) * Math.pow(Math.max(0, prog-0.5)/0.5, 1.2);
+        // 全体ブースト
+        const global = midBoosted ? 1.08 : 1.0;
+        // たまに軽いトラブル（stabで軽減）
+        const trouble = (Math.random()<0.02) ? (0.86 + 0.14*Math.random()) * (1 - (p.stab-1)*0.25) : 1.0;
+        // 加速度的に近づける
+        const vTarget = target * jitter * kickGain * global * trouble;
+        p.v += (vTarget - p.v) * 0.015 * dt; // 簡易PD
+        p.v = Math.max(60, Math.min(p.v, p.vmax*1.25));
+        p.x += p.v * dt / 1000; // px/s 感覚
+        if(p.x > goalX) p.x = goalX;
+        const node = $("#r"+id);
+        node.style.left = `${p.x}px`;
+      });
+      // 進捗フラグ
+      const lead = Math.max(...Object.values(P).map(p=>p.x));
+      $("#flag").textContent = `距離：${Math.round(lead/goalX*100)}%`;
+      // 終了
+      const allDone = Object.values(P).every(p=>p.x>=goalX-0.5);
+      if(allDone){ resolve(finishOrder()); return; }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+
+  function finishOrder(){
+    // x 降順 → 同着は微調整
+    const arr = Object.entries(P).map(([id,p])=>({id:+id, x:p.x + Math.random()*0.01}));
+    arr.sort((a,b)=>b.x-a.x);
+    state.finish = arr.map(o=>o.id);
+    showResult();
+  }
+}
+
+/* -------------------------
+   結果表示＆払い戻し
+------------------------- */
+function showResult(){
+  const order = state.finish;
+  const list = order.map((id,i)=>{
+    const c = id2c(id);
+    return `<div>${i+1}位　${chipHTML(c)}</div>`;
+  }).join("");
+  // ペイアウト
+  const {payout, hitText} = settleBets(order);
+  $("#race").style.display="none";
+  $("#stage").innerHTML = `<div class="panel">
+    <header><h1>順位発表</h1></header>
+    <div class="pbody">
+      <div class="resultList">${list}</div>
+      <div class="pay ${payout>0?'good':'bad'}">${hitText}</div>
+      <div class="note" style="margin-top:6px">※ 2秒後に「次のレースに進みますか？」が表示されます。</div>
+    </div>
+  </div>`;
+  setTimeout(()=>askNext(), 2000);
+}
+
+function settleBets(order){
+  let total = 0; let msgs = [];
+  const b = state.betsFinal||{};
+  // 単勝
+  if(b.win){
+    const ok = (order[0]===b.win.sel);
+    if(ok){
+      const odd = state.odds.win[b.win.sel];
+      const gain = Math.floor(b.win.amt * odd);
+      msgs.push(`単勝 的中 +${gain}`);
+      total += gain;
+    }else msgs.push("単勝 ハズレ");
+  }
+  // 2連（順番固定）
+  if(b.ex){
+    const ok = (order[0]===b.ex.a && order[1]===b.ex.b);
+    if(ok){
+      const key = `${b.ex.a}-${b.ex.b}`;
+      const odd = state.odds.ex[key]||0;
+      const gain = Math.floor(b.ex.amt * odd);
+      msgs.push(`2連 的中 +${gain}`);
+      total += gain;
+    }else msgs.push("2連 ハズレ");
+  }
+  // 3連（順番固定）
+  if(b.tri){
+    const ok = (order[0]===b.tri.a && order[1]===b.tri.b && order[2]===b.tri.c);
+    if(ok){
+      const key = `${b.tri.a}-${b.tri.b}-${b.tri.c}`;
+      const odd = state.odds.tri[key]||0;
+      const gain = Math.floor(b.tri.amt * odd);
+      msgs.push(`3連 的中 +${gain}`);
+      total += gain;
+    }else msgs.push("3連 ハズレ");
+  }
+  const hit = total>0;
+  return {
+    payout: total,
+    hitText: hit ? `的中！ ${total} コイン手に入れた！` : `残念！ハズレ！　(${msgs.join(" / ")})`
+  };
+}
+
+function askNext(){
+  $("#stage").innerHTML = `<div class="panel">
+    <header><h1>次のレースに進みますか？</h1></header>
+    <div class="pbody">
+      <div class="grid two">
+        <button class="btnPrimary" id="yes">はい</button>
+        <button class="btnGhost" id="no">いいえ</button>
+      </div>
+      <div class="note" style="margin-top:10px">※「はい」で再び選手紹介からスタートします。</div>
+    </div>
+  </div>`;
+  $("#yes").onclick = init;
+  $("#no").onclick = ()=>{ /* 指定なし → 何もしない（画面維持） */ };
+}
+
+/* -------------------------
+   ヘルパ：オッズ参照キー生成（上位N表示用）
+------------------------- */
+function buildAllPairs(){
+  const ex={}, tri={};
+  CAST.forEach(a=>{
+    CAST.forEach(b=>{
+      if(a.id===b.id) return;
+      ex[`${a.id}-${b.id}`]=true;
+      CAST.forEach(c=>{
+        if(c.id===a.id||c.id===b.id) return;
+        tri[`${a.id}-${b.id}-${c.id}`]=true;
+      });
+    });
+  });
+  return {ex,tri};
+}
+
+/* -------------------------
+   強制リセット
+------------------------- */
+$("#btnReset").onclick = ()=>location.reload();
+
+/* -------------------------
+   追加：全組み合わせの中から上位表示
+------------------------- */
+function prepareTopLists(od){
+  // 計算済みのキーだけ使う（モンテカルロで0確率は載らない）
+  return {
+    ex: od.ex,
+    tri: od.tri
+  };
+}
+
+/* -------------------------
+   補：オッズレンダリング用に事前整形
+------------------------- */
+function renderOddsTablesInit(od){
+  const top = prepareTopLists(od);
+  return renderOddsTables({win:od.win, ex:top.ex, tri:top.tri});
+}
+// 置き換え
+renderOddsTables = renderOddsTablesInit;
+
+/* -------------------------
+   開始！
+------------------------- */
+</script>
+</body>
+</html>
