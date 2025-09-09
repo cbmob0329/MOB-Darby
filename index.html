@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>MOB Derby v6.6（OP確実自動スタート）</title>
+<title>MOB Derby v6.7（OPに「ゲーム開始」ボタン）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <style>
   :root{
@@ -23,8 +23,8 @@
   .pbody{padding:14px}
   .row{display:flex; gap:10px; flex-wrap:wrap}
   .tag{display:inline-block; padding:2px 8px; border:1px solid #2b323d; border-radius:999px; font-size:12px; color:var(--muted)}
-  .btnPrimary{background:var(--acc); color:#001018; border:0; border-radius:10px; padding:12px 18px; font-weight:700; letter-spacing:.5px; cursor:pointer}
-  .btnGhost{background:#0f141a; color:var(--ink); border:1px solid #2b323d; border-radius:10px; padding:12px 18px; font-weight:700; cursor:pointer}
+  .btnPrimary{background:var(--acc); color:#001018; border:0; border-radius:12px; padding:14px 22px; font-weight:800; letter-spacing:.5px; cursor:pointer}
+  .btnGhost{background:#0f141a; color:var(--ink); border:1px solid #2b323d; border-radius:12px; padding:12px 18px; font-weight:700; cursor:pointer}
   .btnBlock{display:block; width:100%}
   .grid{display:grid; gap:10px}
   .grid.two{grid-template-columns:1fr 1fr}
@@ -40,7 +40,7 @@
   .paper th:first-child,.paper td:first-child{text-align:left}
   .oddsImg{width:28px; height:28px; border-radius:6px; object-fit:contain; vertical-align:middle; margin-right:8px; background:#f3f4f6}
 
-  .splashLayer{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:50; cursor:pointer}
+  .splashLayer{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:50}
   .fadeIn{animation:fadeIn 2s forwards}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
 
@@ -75,7 +75,7 @@
 <body>
 <div id="app">
   <header>
-    <h1>MOB Derby v6.6</h1>
+    <h1>MOB Derby v6.7</h1>
     <button class="btn" id="btnReset">強制リセット</button>
   </header>
   <main id="stage"></main>
@@ -235,8 +235,7 @@ function numericOnly(input){
   });
 }
 
-/* ========= 起動（OP→自動で選手紹介へ／多重保険） ========= */
-let started = false;
+/* ========= 起動（OPに「ゲーム開始」ボタン） ========= */
 document.addEventListener("DOMContentLoaded", ()=>{ init().catch(showErrorPanel); });
 
 async function init(){
@@ -245,30 +244,24 @@ async function init(){
   preloadAll(2000); // 並列プリロード
 
   const layer = el("div",{class:"splashLayer", id:"opLayer",
-    style:`background: url('${IMG.opBg}') center/cover no-repeat, radial-gradient(60% 60% at 50% 20%, #222 0%, #111 70%);`},
+    style:`background: url('${IMG.opBg}') center/cover no-repeat, radial-gradient(60% 60% at 50% 20%, #222 0%, #111 70%); display:flex; flex-direction:column; gap:22px;`},
     el("div",{style:"text-align:center"},
       el("img",{src:IMG.title, alt:"title", class:"fadeIn",
                 onerror:"this.style.display='none'; this.closest('div').querySelector('.fallbackTitle').style.display='block';",
                 style:"width:min(600px,80vw); height:auto; display:block; margin:0 auto;"}),
-      el("div",{class:"fallbackTitle", style:"display:none; color:#e6f0ff; font-size:28px; font-weight:900"},"MOB DERBY"),
-      el("div",{id:"tapHint", style:"margin-top:16px; color:#cbd5e1; font-size:12px"}, "進まない場合は画面をタップしてください")
-    )
+      el("div",{class:"fallbackTitle", style:"display:none; color:#e6f0ff; font-size:28px; font-weight:900"},"MOB DERBY")
+    ),
+    el("div",{style:"text-align:center"},
+      el("button",{id:"startBtn", class:"btnPrimary", style:"font-size:20px; padding:16px 28px"}, "ゲーム開始")
+    ),
+    el("div",{style:"text-align:center; color:#cbd5e1; font-size:12px"}, "※ 進まない場合はこのボタンを押してください")
   );
   $("#stage").appendChild(layer);
 
-  // クリックでも進める保険
-  layer.addEventListener("click", startFlow, {once:true});
-
-  // 2秒後に自動開始
-  setTimeout(startFlow, 2000);
-
-  // 5秒ウォッチドッグ（念のため再実行）
-  setTimeout(()=>{ if(!started) startFlow(); }, 5000);
+  $("#startBtn").onclick = startFlow;
 }
 
 async function startFlow(){
-  if(started) return;
-  started = true;
   $("#opLayer")?.remove();
   await showIntroLogoThenIntro();
 }
@@ -563,7 +556,7 @@ async function runRace(){
         const kick = 1 + (p.kick-1) * Math.pow(Math.max(0, prog-0.55)/0.45, 1.1);
         const global = (mid?1.05:1.0) * globalScale;
         const trouble = (Math.random()<0.015) ? (0.86 + 0.14*Math.random()) * (1 - (p.stab-1)*0.25) : 1.0;
-        const vTarget = p.v * jitter * kick * global * trouble;
+        const vTarget = p.v * jitter * global * trouble;
         p.v += (vTarget - p.v) * 0.045;
         p.v = Math.max(10, Math.min(p.v, p.vmax*globalScale*1.15));
         p.x += p.v * (dt/1000);
@@ -613,8 +606,8 @@ function showResult(){
 function settleBets(order){
   let total=0; const b=state.betsFinal||{}; const msgs=[];
   if(b.win){ const ok=(order[0]===b.win.sel); if(ok){ const odd=state.odds.win[b.win.sel]; const gain=Math.floor(b.win.amt*odd); total+=gain; msgs.push(`単勝 的中 +${gain}`);} else msgs.push("単勝 ハズレ"); }
-  if(b.ex){ const ok=(order[0]===b.ex.a && order[1]===b.ex.b); if(ok){ const key=`${b.ex.a}-${b.ex.b}`; const odd=state.odds.ex[key]||0; const gain=Math.floor(b.ex.amt*odd); total+=gain; msgs.push(`2連 的中 +${gain}`);} else msgs.push("2連 ハズレ"); }
-  if(b.tri){ const ok=(order[0]===b.tri.a && order[1]===b.tri.b && order[2]===b.tri.c); if(ok){ const key=`${b.tri.a}-${b.tri.b}-${b.tri.c}`; const odd=state.odds.tri[key]||0; const gain=Math.floor(b.tri.amt*odd); total+=gain; msgs.push(`3連 的中 +${gain}`);} else msgs.push("3連 ハズレ"); }
+  if(b.ex){ const ok=(order[0]===b.ex.a && order[1]===b.ex.b); if(ok){ const key=\`\${b.ex.a}-\${b.ex.b}\`; const odd=state.odds.ex[key]||0; const gain=Math.floor(b.ex.amt*odd); total+=gain; msgs.push(\`2連 的中 +\${gain}\`);} else msgs.push("2連 ハズレ"); }
+  if(b.tri){ const ok=(order[0]===b.tri.a && order[1]===b.tri.b && order[2]===b.tri.c); if(ok){ const key=\`\${b.tri.a}-\${b.tri.b}-\${b.tri.c}\`; const odd=state.odds.tri[key]||0; const gain=Math.floor(b.tri.amt*odd); total+=gain; msgs.push(\`3連 的中 +\${gain}\`);} else msgs.push("3連 ハズレ"); }
   return {payout:total, hitText: total>0? `的中！ ${total} コイン手に入れた！` : `残念！ハズレ！　(${msgs.join(" / ")})`};
 }
 function askNext(){
@@ -628,7 +621,7 @@ function askNext(){
       <div class="note" style="margin-top:10px">※「はい」で再び選手紹介からスタートします。</div>
     </div>
   </div>`;
-  $("#yes").onclick = ()=>{ started=false; startFlow(); };
+  $("#yes").onclick = ()=>{ showIntroLogoThenIntro(); };
   $("#no").onclick = ()=>{ $("#stage").innerHTML = `<div class="panel"><header><h1>終了</h1></header><div class="pbody">ご利用ありがとうございました。</div></div>`; };
 }
 
