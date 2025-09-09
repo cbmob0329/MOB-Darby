@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>MOB Derby v7.3（ペース配分＋ミニマップ）</title>
+<title>MOB Derby v7.4（固定画面2周コース＋ミニマップ）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <style>
   :root{
@@ -22,7 +22,7 @@
   .pbody{padding:14px}
   .row{display:flex; gap:10px; flex-wrap:wrap}
   .btnPrimary{background:var(--acc); color:#001018; border:0; border-radius:12px; padding:14px 22px; font-weight:800; letter-spacing:.5px; cursor:pointer}
-  .btnGhost{background:#0f141a; color:var(--ink); border:1px solid #2b323d; border-radius:12px; padding:12px 18px; font-weight:700; cursor:pointer}
+  .btnGhost{background:#0f141a; color:#fff; border:1px solid #2b323d; border-radius:12px; padding:12px 18px; font-weight:700; cursor:pointer}
   .btnBlock{display:block; width:100%}
   .grid{display:grid; gap:10px}
   .grid.two{grid-template-columns:1fr 1fr}
@@ -31,18 +31,14 @@
   .paperWrap{background:transparent}
   .paper{background:var(--paper); color:var(--inkDark); border:1px solid var(--line); border-radius:14px; padding:14px}
   .paper h2{margin:6px 0 10px 0; font-size:18px}
-  .paper input,.paper select{background:#fff; color:var(--inkDark); border:1px solid #cbd5e1; border-radius:8px; padding:10px 12px; width:100%}
+  .paper input,.paper select{background:#fff; color:#0b0f14; border:1px solid #cbd5e1; border-radius:8px; padding:10px 12px; width:100%}
   .paper table{width:100%; border-collapse:collapse; font-size:13px}
   .paper th,.paper td{border-bottom:1px solid #e5e7eb; padding:8px 6px; text-align:center}
   .paper th:first-child,.paper td:first-child{text-align:left}
   .oddsImg{width:28px; height:28px; border-radius:6px; object-fit:contain; vertical-align:middle; margin-right:8px; background:#f3f4f6}
 
   /* OPレイヤー */
-  .splashLayer{
-    position:absolute; inset:0; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:18px;
-    background:#000; z-index:50
-  }
+  .splashLayer{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:#000; z-index:50}
   .opTitle{display:block; width:min(600px,80vw); height:auto}
   .fadeIn{animation:fadeIn 2s forwards}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
@@ -55,34 +51,41 @@
     box-shadow:0 6px 18px rgba(0,0,0,.25);
   }
 
-  /* レース */
+  /* レース（固定画面） */
   #race{position:absolute; inset:0; display:none}
   #billboard{
     position:absolute; left:50%; transform:translateX(-50%); top:12px;
     width:min(1000px,94vw); height:100px; padding:8px;
     background:linear-gradient(180deg,#1a2029,#141922);
-    border:1px solid #222834; border-radius:10px; z-index:3; /* ミニマップはZ高め */
+    border:1px solid #222834; border-radius:10px; z-index:3;
     display:flex; align-items:center; justify-content:center;
   }
   #miniCanvas{width:100%; height:84px; display:block}
 
-  /* 横スクロール観戦 */
+  /* 固定・無スクロール */
   #lanesWrap{
     position:absolute; left:0; right:0; bottom:0; top:140px;
-    overflow-x:auto; overflow-y:hidden; background:#14161a;
-    scrollbar-color:#2b323d transparent;
+    overflow:hidden; background:#14161a;
   }
-  #lanes{ position:relative; height:100%; display:flex; flex-direction:column; }
+  #lanes{ position:absolute; inset:0; }
   .lane{ position:relative; height:calc((100% - 9px)/10); border-top:1px solid rgba(255,255,255,.04); }
   .lane:nth-child(odd){ background:linear-gradient(180deg, var(--laneA) 0%, #878d96 100%); }
   .lane:nth-child(even){ background:linear-gradient(180deg, var(--laneB) 0%, #797f88 100%); }
   .lane::after{ content:""; position:absolute; inset:0; box-shadow:inset 0 6px 10px rgba(0,0,0,.18), inset 0 -6px 10px rgba(0,0,0,.18); pointer-events:none; }
   .laneLabel{ position:absolute; left:8px; top:50%; transform:translateY(-50%); background:rgba(20,22,26,.85); color:#e5e7eb; border:1px solid #2b323d; font-size:12px; padding:2px 6px; border-radius:6px; z-index:2; }
-  .runner{position:absolute; left:48px; top:50%; transform:translateY(-50%); width:48px; height:48px; display:flex; align-items:center; justify-content:center; z-index:3}
+  .runner{position:absolute; left:48px; top:50%; transform:translateY(-50%); width:32px; height:32px; display:flex; align-items:center; justify-content:center; z-index:3}
   .runner img{ width:100%; height:100%; object-fit:contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,.45)); }
 
-  .finishLine{ position:absolute; top:0; bottom:0; width:6px; background:repeating-linear-gradient(180deg,#eee 0 12px,#111 12px 24px); box-shadow:0 0 0 1px #0008; }
-  .finishTag{ position:absolute; top:6px; transform:translateX(-50%); background:#0f1319cc; border:1px solid #2b323d; color:#9fb0c9; font-size:12px; padding:4px 8px; border-radius:8px; }
+  .startLine,.finishLine{
+    position:absolute; top:0; bottom:0; width:6px;
+    background:repeating-linear-gradient(180deg,#eee 0 12px,#111 12px 24px);
+    box-shadow:0 0 0 1px #0008;
+  }
+  .startTag,.finishTag{
+    position:absolute; top:6px; transform:translateX(-50%);
+    background:#0f1319cc; border:1px solid #2b323d; color:#9fb0c9;
+    font-size:12px; padding:4px 8px; border-radius:8px;
+  }
 
   .flag{position:absolute; right:10px; top:120px; padding:6px 10px; border-radius:8px; background:#0f1319cc; border:1px solid #2b323d; color:#9fb0c9; font-size:12px; z-index:3}
   .count{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); font-size:84px; font-weight:900; text-shadow:0 10px 30px rgba(0,0,0,.55); opacity:1; z-index:5; color:#ffffffcc}
@@ -93,25 +96,12 @@
   .good{color:var(--ok)} .bad{color:var(--bad)}
   .chip{display:inline-flex; align-items:center; gap:8px}
   .chipImg{width:36px;height:36px;border-radius:8px;object-fit:contain;background:#0d1117;border:1px solid #2b323d}
-  .dot{width:18px; height:18px; border-radius:6px; display:inline-block; vertical-align:middle}
   .tabs{display:flex; gap:6px; margin-bottom:8px}
   .tab{flex:1; text-align:center; padding:10px; border:1px solid #d1d5db; border-radius:10px; cursor:pointer; user-select:none; font-size:13px; color:var(--inkDark); background:#fff}
   .tab.active{background:#f3f4f6}
   .stickyFooter{position:sticky; bottom:0; padding:12px; background:linear-gradient(180deg,rgba(20,22,26,0),#14161a 35%); display:flex; gap:10px}
 
-  /* 観戦HUD */
-  .specHUD{
-    position:absolute; left:12px; bottom:12px; z-index:5;
-    display:flex; gap:8px; align-items:center;
-    background:#0f141acc; border:1px solid #2b323d; padding:8px 10px; border-radius:10px;
-    font-size:12px; color:#cbd5e1;
-  }
-  .toggle{ appearance:none; width:38px; height:22px; border-radius:999px; background:#334155; position:relative; outline:none; cursor:pointer; border:1px solid #1f2937; }
-  .toggle:checked{background:#22c55e}
-  .toggle::after{ content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:999px; background:#fff; transition:left .15s ease; }
-  .toggle:checked::after{ left:18px; }
-
-  /* JSが動かない時の予備UI */
+  /* 予備UI */
   #bootFallback{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#e5e7eb}
   #bootFallback .box{background:#111; border:1px solid #2b323d; padding:20px; border-radius:12px; text-align:center}
   #bootFallback .box button{margin-top:10px}
@@ -120,7 +110,7 @@
 <body>
 <div id="app">
   <header>
-    <h1>MOB Derby v7.3</h1>
+    <h1>MOB Derby v7.4</h1>
     <button class="btn" id="btnReset">強制リセット</button>
   </header>
   <main id="stage">
@@ -139,14 +129,6 @@
   <div class="count" id="count"></div>
   <div id="lanesWrap"><div id="lanes"></div></div>
   <div class="flag" id="flag">距離：0%</div>
-  <div class="specHUD" id="specHUD" style="display:none">
-    <label style="display:flex; align-items:center; gap:6px">
-      <input type="checkbox" id="followChk" class="toggle" checked>
-      <span>自動追尾</span>
-    </label>
-    <button class="btnGhost" id="jumpStart">スタート付近</button>
-    <button class="btnGhost" id="jumpFinish">ゴール付近</button>
-  </div>
 </div>
 
 <script>
@@ -378,28 +360,23 @@ function updateReady(){ var ok=(state.bets.win&&state.bets.win.sel)||state.bets.
 async function prepStart(){
   state.betsFinal=JSON.parse(JSON.stringify(state.bets));
   $("#stage").innerHTML=""; $("#race").style.display="block"; $("#race").setAttribute("aria-hidden","false");
-  $("#lanes").innerHTML=""; $("#flag").textContent="距離：0%"; $("#specHUD").style.display="flex";
+  $("#lanes").innerHTML=""; $("#flag").textContent="距離：0%";
 
   var wrap=$("#lanesWrap");
-  var TRACK=1000;
-  var trackPx=Math.max(wrap.clientWidth*3, 5000);
-  state.trackPx = trackPx; state.TRACK = TRACK;
-  $("#lanes").style.width = trackPx + "px";
+  var lapWidthPx = wrap.clientWidth - 96;      // 画面内で使う横幅（左右に余白）
+  var offsetStart = 48;
+  var LAPS = 2;                                // 2周でゴール
+  var TRACK_LAP = 1000;                        // 1周の“物理”距離
+  var TRACK_TOTAL = TRACK_LAP * LAPS;          // 合計距離
+  state.loop = {LAPS, TRACK_LAP, TRACK_TOTAL, lapWidthPx, offsetStart};
 
-  // ミニマップCanvas取得＆リサイズ
-  var mini=$("#miniCanvas"), mctx=mini.getContext("2d");
-  function resizeMini(){
-    var bb=document.getElementById("billboard");
-    var w=bb.clientWidth-16; if(w<300) w=300;
-    mini.width=w; mini.height=84;
-  }
-  resizeMini(); window.addEventListener("resize", resizeMini);
-
-  // フィニッシュライン
-  var finishX = trackPx - 96;
-  var fl = el("div",{class:"finishLine",style:"left:"+finishX+"px"});
-  var tag = el("div",{class:"finishTag",style:"left:"+finishX+"px"},"FINISH");
-  $("#lanes").appendChild(fl); $("#lanes").appendChild(tag);
+  // ライン表示（左：START、右：FINISH）
+  var sl = el("div",{class:"startLine",style:"left:"+offsetStart+"px"});
+  var stg= el("div",{class:"startTag",style:"left:"+offsetStart+"px"},"START");
+  var fl = el("div",{class:"finishLine",style:"right:48px"}); // 右端
+  var ftg= el("div",{class:"finishTag",style:"right:48px"},"FINISH");
+  $("#lanes").appendChild(sl); $("#lanes").appendChild(stg);
+  $("#lanes").appendChild(fl); $("#lanes").appendChild(ftg);
 
   // 10レーン
   CAST.forEach(function(c){
@@ -413,16 +390,48 @@ async function prepStart(){
     $("#lanes").appendChild(lane);
   });
 
-  // 観戦HUD
-  var follow=true; var userScrolling=false; var followChk=$("#followChk");
-  followChk.checked=true; followChk.onchange=function(){ follow=this.checked; };
-  wrap.addEventListener("scroll", function(){ userScrolling=true; clearTimeout(wrap._t); wrap._t=setTimeout(function(){ userScrolling=false; }, 200); });
-  $("#jumpStart").onclick=function(){ wrap.scrollLeft = 0; };
-  $("#jumpFinish").onclick=function(){ wrap.scrollLeft = wrap.scrollWidth - wrap.clientWidth; };
+  // ミニマップ
+  var mini=$("#miniCanvas"), mctx=mini.getContext("2d");
+  function resizeMini(){
+    var bb=document.getElementById("billboard");
+    var w=bb.clientWidth-16; if(w<300) w=300;
+    mini.width=w; mini.height=84;
+  }
+  resizeMini(); window.addEventListener("resize", resizeMini);
+  function drawMini(progressArr){ // progTotal: 0..1 で 2周分
+    var w=mini.width, h=mini.height, pad=8, lanes=10;
+    mctx.clearRect(0,0,w,h);
+    // レーン
+    for(var i=0;i<lanes;i++){
+      var y = pad + i*((h-2*pad)/(lanes-1));
+      mctx.strokeStyle = i%2? "#1f2937":"#243041";
+      mctx.lineWidth = 10; mctx.beginPath(); mctx.moveTo(pad,y); mctx.lineTo(w-pad,y); mctx.stroke();
+    }
+    // 周回目安（1周目終端）
+    mctx.strokeStyle="#64748b"; mctx.lineWidth=1.5;
+    var halfway = pad + (w-2*pad-20)*(0.5); // 2周全体の 50% が1周ゴール
+    mctx.setLineDash([6,6]); mctx.beginPath(); mctx.moveTo(halfway,pad-2); mctx.lineTo(halfway,h-pad+2); mctx.stroke(); mctx.setLineDash([]);
 
-  // まもなく → カウントダウン
+    // フィニッシュ
+    mctx.strokeStyle="#94a3b8"; mctx.lineWidth=2;
+    var fx = w - pad - 20;
+    mctx.beginPath(); mctx.moveTo(fx,pad-2); mctx.lineTo(fx,h-pad+2); mctx.stroke();
+
+    // ランナー
+    var r=5;
+    progressArr.forEach(function(o){
+      var y = pad + (o.id-1)*((h-2*pad)/(lanes-1));
+      var x = pad + (w-2*pad-20)*o.progTotal; // 0..1（2周ぶん）
+      mctx.fillStyle=o.color; 
+      mctx.beginPath(); mctx.arc(x,y,r,0,Math.PI*2); mctx.fill();
+      mctx.strokeStyle="#ffffffaa"; mctx.lineWidth=1;
+      mctx.beginPath(); mctx.arc(x,y,r,0,Math.PI*2); mctx.stroke();
+    });
+  }
+
+  // カウントダウン
   var logo=el("div",{class:"centerLogo"}, el("img",{src:IMG.startLogo,alt:"start",onerror:"this.style.display='none'; this.parentElement.innerHTML='<div style=color:#fff;font-size:28px;font-weight:900>まもなくレース開始！</div>'"}));
-  $("#race").appendChild(logo); await sleep(2000); safeRemove(logo);
+  $("#race").appendChild(logo); await sleep(2000); logo.remove();
   await startCountdown();
 
   async function startCountdown(){
@@ -431,40 +440,13 @@ async function prepStart(){
     cnt.textContent=""; await runRace();
   }
 
-  // ミニマップ描画
-  function drawMini(progressArr){ // [{id, prog(0..1), color}]
-    var w=mini.width, h=mini.height, pad=8, lanes=10;
-    mctx.clearRect(0,0,w,h);
-    // 背景グリッド（レーン）
-    for(var i=0;i<lanes;i++){
-      var y = pad + i*((h-2*pad)/(lanes-1));
-      mctx.strokeStyle = i%2? "#1f2937":"#243041";
-      mctx.lineWidth = 10;
-      mctx.beginPath(); mctx.moveTo(pad,y); mctx.lineTo(w-pad,y); mctx.stroke();
-    }
-    // フィニッシュ
-    mctx.strokeStyle="#94a3b8"; mctx.lineWidth=2; 
-    var fx = w - pad - 20; // 右端寄り
-    mctx.beginPath(); mctx.moveTo(fx,pad-2); mctx.lineTo(fx,h-pad+2); mctx.stroke();
-
-    // ランナー
-    var r=5;
-    progressArr.forEach(function(o,idx){
-      var y = pad + (o.id-1)*((h-2*pad)/(lanes-1));
-      var x = pad + (w-2*pad-20)*o.prog;
-      mctx.fillStyle=o.color; 
-      mctx.beginPath(); mctx.arc(x,y,r,0,Math.PI*2); mctx.fill();
-      // 小さな白枠
-      mctx.strokeStyle="#ffffffaa"; mctx.lineWidth=1;
-      mctx.beginPath(); mctx.arc(x,y,r,0,Math.PI*2); mctx.stroke();
-    });
-  }
-
-  // —— レース本体（ペース配分＋追い込み強化） ——
+  // —— レース（固定画面2周・周回レンダリング） ——
   async function runRace(){
-    var offsetStart = 48; var goalPx = trackPx - 96;
-    var duration = 15000 + Math.random()*5000;
-    var avgTargetSpeed = TRACK / (duration/1000);
+    var LAPS=state.loop.LAPS, TRACK_LAP=state.loop.TRACK_LAP, TOTAL=state.loop.TRACK_TOTAL;
+    var lapPx=state.loop.lapWidthPx, offset=state.loop.offsetStart;
+
+    var duration = 15000 + Math.random()*5000; // 15〜20秒（2周トータル）
+    var avgTargetSpeed = TOTAL / (duration/1000);
 
     var P={}, sumBase=0;
     (state.roster||CAST).forEach(function(r){
@@ -473,60 +455,47 @@ async function prepStart(){
       P[r.id]={x:0,v:base,vmax:base*1.4,men:RANK_VAL[r.men]||1,tec:RANK_VAL[r.tec]||1,kick:RANK_VAL[r.kick]||1,stab:RANK_VAL[r.stab]||1,color:r.color};
       sumBase+=base;
     });
-    var avgBase=sumBase/CAST.length, globalScale=(TRACK/(duration/1000))/avgBase;
+    var avgBase=sumBase/CAST.length, globalScale=(TOTAL/(duration/1000))/avgBase;
 
-    // ペース配分関数（序盤ゆっくり→中盤普通→終盤ブースト）
-    function phaseFactor(p){
+    function phaseFactor(p){ // p: 0..1（2周全体）
       if(p<0.35){ var t=p/0.35; return lerp(0.65,0.85, easeInOutQuad(t)); }
       if(p<0.70){ var t=(p-0.35)/0.35; return lerp(0.90,1.00, easeInOutQuad(t)); }
       var t=(p-0.70)/0.30; return lerp(1.05,1.25, easeOutCubic(t));
     }
 
-    var mid=false; var t0=performance.now();
+    var t0=performance.now();
     return new Promise(function(resolve){
       function step(t){
         var dt=Math.min(40,t-(step._last||t0)); step._last=t;
-        var elapsed=t-t0, prog=Math.min(1,elapsed/duration);
-        var anyMid=Object.keys(P).some(function(k){return P[k].x>=TRACK*0.5}); if(anyMid&&!mid) mid=true;
+        var elapsed=t-t0, progTotal=Math.min(1, elapsed/duration); // 0..1（2周ぶん）
 
-        // 進行
         Object.keys(P).forEach(function(id){
           var p=P[id];
           var jitter=(.985+.03*Math.random())*(1-(p.tec-1)*.10)*(1-(p.men-1)*.08);
-          var global=globalScale * phaseFactor(prog);
-          // トラブル（安定が高いほど軽減）
+          var global=globalScale * phaseFactor(progTotal);
           var trouble=Math.random()<.015 ? (.86+.14*Math.random())*(1-(p.stab-1)*.25) : 1.0;
-          // 追い込み：終盤でkickを効かせる（0→約 +20%程度まで）
-          var late=clamp((prog-0.70)/0.30,0,1);
+          var late=clamp((progTotal-0.70)/0.30,0,1);
           var kickBoost = 1 + (p.kick-1) * easeOutCubic(late) * 0.9;
 
           var vTarget = p.v * jitter * global * trouble * kickBoost;
           p.v += (vTarget - p.v) * 0.045;
-          p.v = Math.max(10, Math.min(p.v, p.vmax*globalScale*1.20)); // 上限少し上げる
+          p.v = Math.max(10, Math.min(p.v, p.vmax*globalScale*1.20));
           p.x += p.v * (dt/1000);
-          if(p.x>TRACK) p.x=TRACK;
+          if(p.x>TOTAL) p.x=TOTAL;
 
-          var px = (p.x/TRACK) * goalPx;
-          $("#r"+id).style.left = (offsetStart+px) + "px";
+          // 画面描画：周回レンダリング
+          var lapProg = (p.x % TRACK_LAP) / TRACK_LAP;      // 0..1 の周回内進行
+          var px = offset + lapProg * lapPx;
+          $("#r"+id).style.left = px + "px";
         });
 
-        // 進捗・追尾
+        // 進捗・ミニマップ
         var leadX = Math.max.apply(null, Object.keys(P).map(function(k){return P[k].x;}));
-        $("#flag").textContent="距離："+Math.round(leadX/TRACK*100)+"%";
+        $("#flag").textContent="進行： "+Math.round(leadX/TOTAL*100)+"%（周回 "+(Math.floor(leadX/TRACK_LAP)+1)+"/"+LAPS+"）";
+        var arr = Object.keys(P).map(function(id){ return {id:+id, progTotal:P[id].x/TOTAL, color:P[id].color}; });
+        drawMini(arr);
 
-        // ミニマップ更新
-        var progressArr = Object.keys(P).map(function(id){
-          return {id:+id, prog:P[id].x/TRACK, color:P[id].color};
-        });
-        drawMini(progressArr);
-
-        if(follow && !userScrolling){
-          var leadPx = (leadX/TRACK)*goalPx + offsetStart;
-          var targetLeft = Math.max(0, leadPx - wrap.clientWidth*0.45);
-          wrap.scrollLeft += (targetLeft - wrap.scrollLeft)*0.18;
-        }
-
-        var done = Object.keys(P).every(function(k){return P[k].x>=TRACK-0.1});
+        var done = Object.keys(P).every(function(k){return P[k].x>=TOTAL-0.1});
         if(done){ resolve(finish()); return; }
         requestAnimationFrame(step);
       }
@@ -534,6 +503,7 @@ async function prepStart(){
     });
 
     function finish(){
+      // 総距離で決定
       var order = Object.keys(P).map(function(id){return{id:+id,x:P[id].x+Math.random()*0.001}})
         .sort(function(a,b){return b.x-a.x}).map(function(o){return o.id});
       state.finish=order; showResult();
@@ -541,7 +511,7 @@ async function prepStart(){
   }
 }
 
-/* ========= ベット清算・結果 ========= */
+/* ========= 清算・結果 ========= */
 function settleBets(order){
   var total=0, b=state.betsFinal||{}, msgs=[];
   if(b.win){ var ok=(order[0]===b.win.sel); if(ok){ var odd=state.odds.win[b.win.sel]; var gain=Math.floor(b.win.amt*odd); total+=gain; msgs.push("単勝 的中 +"+gain);} else msgs.push("単勝 ハズレ"); }
@@ -572,7 +542,7 @@ function askNext(){
     '<div class="pbody"><div class="grid two">'+
     '<button class="btnPrimary" id="yes">はい</button>'+
     '<button class="btnGhost" id="no">いいえ</button>'+
-    '</div><div style="font-size:12px; color:#9fb0c9; margin-top:10px">※「はい」で再び選手紹介からスタートします。</div></div></div>';
+    '</div></div></div>';
   $("#yes").onclick=function(){ showIntroLogoThenIntro(); };
   $("#no").onclick=function(){ $("#stage").innerHTML='<div class="panel"><header><h1>終了</h1></header><div class="pbody">ご利用ありがとうございました。</div></div>'; };
 }
