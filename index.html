@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>MOB Derby v6.4（プリロード・2/3連修正・15–20s・数値専用）</title>
+<title>MOB Derby v6.6（OP確実自動スタート）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <style>
   :root{
     --bg:#0e1014; --panel:#161b22; --ink:#f2f6ff; --muted:#9fb0c9;
     --acc:#12c2ff; --ok:#47d764; --bad:#ff5c7a; --warn:#ffcf4d;
     --paper:#ffffff; --inkDark:#0b0f14; --inkMid:#334155; --line:#e5e7eb;
-    --laneA:#8d939c; --laneB:#7f848d; --laneEdge:#5d626a;
+    --laneA:#8d939c; --laneB:#7f848d;
   }
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Sans","Yu Gothic",sans-serif}
   #app{position:fixed; inset:0; display:flex; flex-direction:column}
@@ -18,7 +18,6 @@
   header .btn{font-size:12px;padding:6px 10px;border:1px solid #2b323d;border-radius:8px;background:#0f141a;color:var(--ink);cursor:pointer}
   main{flex:1; position:relative; overflow:hidden; min-height:60vh}
 
-  /* 通常パネル（暗） */
   .panel{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(980px,95vw); background:var(--panel); border:1px solid #222834; border-radius:14px; box-shadow:0 12px 36px rgba(0,0,0,.35)}
   .panel header{border-radius:14px 14px 0 0}
   .pbody{padding:14px}
@@ -31,7 +30,6 @@
   .grid.two{grid-template-columns:1fr 1fr}
   .scroll{max-height:min(62vh,520px); overflow:auto; padding-right:6px}
 
-  /* ベットUIの“紙カード” */
   .paperWrap{background:transparent}
   .paper{background:var(--paper); color:var(--inkDark); border:1px solid var(--line); border-radius:14px; padding:14px}
   .paper h2{margin:6px 0 10px 0; font-size:18px}
@@ -42,12 +40,10 @@
   .paper th:first-child,.paper td:first-child{text-align:left}
   .oddsImg{width:28px; height:28px; border-radius:6px; object-fit:contain; vertical-align:middle; margin-right:8px; background:#f3f4f6}
 
-  /* スプラッシュ */
-  .splashLayer{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:50}
-  .fadeIn{animation:fadeIn 3s forwards}
+  .splashLayer{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:50; cursor:pointer}
+  .fadeIn{animation:fadeIn 2s forwards}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
 
-  /* レースエリア */
   #race{position:absolute; inset:0; display:none}
   #lanesWrap{position:absolute; left:0; right:0; bottom:0; top:140px; overflow:hidden; background:#14161a}
   #billboard{position:absolute; left:50%; transform:translateX(-50%); top:12px; width:min(1000px,94vw); height:100px; background:linear-gradient(180deg,#1a2029,#141922); border:1px solid #222834; border-radius:10px; z-index:2; pointer-events:none}
@@ -55,21 +51,10 @@
   .lane{position:relative; height:calc((100% - 9px)/10); border-top:1px solid rgba(255,255,255,.04); }
   .lane:nth-child(odd){ background:linear-gradient(180deg, var(--laneA) 0%, #878d96 100%); }
   .lane:nth-child(even){ background:linear-gradient(180deg, var(--laneB) 0%, #797f88 100%); }
-  .lane::after{
-    content:""; position:absolute; inset:0;
-    box-shadow:inset 0 6px 10px rgba(0,0,0,.18), inset 0 -6px 10px rgba(0,0,0,.18);
-    pointer-events:none;
-  }
-  .laneLabel{
-    position:absolute; left:8px; top:50%; transform:translateY(-50%);
-    background:rgba(20,22,26,.85); color:#e5e7eb; border:1px solid #2b323d;
-    font-size:12px; padding:2px 6px; border-radius:6px; z-index:2;
-  }
+  .lane::after{ content:""; position:absolute; inset:0; box-shadow:inset 0 6px 10px rgba(0,0,0,.18), inset 0 -6px 10px rgba(0,0,0,.18); pointer-events:none; }
+  .laneLabel{ position:absolute; left:8px; top:50%; transform:translateY(-50%); background:rgba(20,22,26,.85); color:#e5e7eb; border:1px solid #2b323d; font-size:12px; padding:2px 6px; border-radius:6px; z-index:2; }
   .runner{position:absolute; left:48px; top:50%; transform:translateY(-50%); width:48px; height:48px; display:flex; align-items:center; justify-content:center; z-index:3}
-  .runner img{
-    width:100%; height:100%; object-fit:contain; image-rendering:auto;
-    filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
-  }
+  .runner img{ width:100%; height:100%; object-fit:contain; image-rendering:auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,.45)); }
   .flag{position:absolute; right:10px; top:120px; padding:6px 10px; border-radius:8px; background:#0f1319cc; border:1px solid #2b323d; color:var(--muted); font-size:12px; z-index:3}
   .count{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); font-size:84px; font-weight:900; text-shadow:0 10px 30px rgba(0,0,0,.55); opacity:1; z-index:5; color:#ffffffcc}
   .centerLogo{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); z-index:6; pointer-events:none}
@@ -90,7 +75,7 @@
 <body>
 <div id="app">
   <header>
-    <h1>MOB Derby v6.4</h1>
+    <h1>MOB Derby v6.6</h1>
     <button class="btn" id="btnReset">強制リセット</button>
   </header>
   <main id="stage"></main>
@@ -225,18 +210,13 @@ function weightedPick(keys,weights){
   return keys[keys.length-1];
 }
 function numericOnly(input){
-  // 物理キーボード用：数字/Backspace/Delete/矢印/Tabのみ許可
   input.addEventListener("keydown", e=>{
-    const k=e.key;
-    const ctrl = e.ctrlKey||e.metaKey;
+    const k=e.key; const ctrl=e.ctrlKey||e.metaKey;
     if(/^[0-9]$/.test(k) || ["Backspace","Delete","ArrowLeft","ArrowRight","Tab","Home","End"].includes(k) || (ctrl && ["a","c","v","x"].includes(k.toLowerCase()))) return;
     if(k==="Enter"){ e.preventDefault(); return; }
-    // ブロック
     if(["e","E","+","-",".",","," "].includes(k)) { e.preventDefault(); return; }
-    // その他はデフォルトでOK（IME入力などはtype=numberでは基本入らない）
   });
   input.addEventListener("input", ()=>{
-    // 非数字を排除、先頭の0は許容、上限・下限
     let v = input.value.replace(/[^\d]/g,"");
     let num = v===""?0:parseInt(v,10);
     if(isNaN(num)) num=0;
@@ -255,13 +235,14 @@ function numericOnly(input){
   });
 }
 
-/* ========= 起動（OP→タイトル3秒→Yes/No） ========= */
+/* ========= 起動（OP→自動で選手紹介へ／多重保険） ========= */
+let started = false;
 document.addEventListener("DOMContentLoaded", ()=>{ init().catch(showErrorPanel); });
+
 async function init(){
   $("#race").style.display="none"; $("#race").setAttribute("aria-hidden","true");
   $("#stage").innerHTML = "";
-  // 先にプリロード（最大2秒で打ち切り）
-  preloadAll(2000);
+  preloadAll(2000); // 並列プリロード
 
   const layer = el("div",{class:"splashLayer", id:"opLayer",
     style:`background: url('${IMG.opBg}') center/cover no-repeat, radial-gradient(60% 60% at 50% 20%, #222 0%, #111 70%);`},
@@ -269,19 +250,27 @@ async function init(){
       el("img",{src:IMG.title, alt:"title", class:"fadeIn",
                 onerror:"this.style.display='none'; this.closest('div').querySelector('.fallbackTitle').style.display='block';",
                 style:"width:min(600px,80vw); height:auto; display:block; margin:0 auto;"}),
-      el("div",{class:"fallbackTitle", style:"display:none; color:#e6f0ff; font-size:28px; font-weight:900"},"MOB DERBY")
+      el("div",{class:"fallbackTitle", style:"display:none; color:#e6f0ff; font-size:28px; font-weight:900"},"MOB DERBY"),
+      el("div",{id:"tapHint", style:"margin-top:16px; color:#cbd5e1; font-size:12px"}, "進まない場合は画面をタップしてください")
     )
   );
   $("#stage").appendChild(layer);
 
-  await sleep(3000);
-  const menu = el("div",{style:"position:absolute; left:50%; top:70%; transform:translate(-50%,-50%); display:grid; gap:10px; zIndex:60"},
-    el("button",{class:"btnPrimary", id:"startYes", style:"width:200px"},"はい"),
-    el("button",{class:"btnGhost", id:"startNo", style:"width:200px"},"いいえ")
-  );
-  $("#stage").appendChild(menu);
-  $("#startYes").onclick = async ()=>{ $("#opLayer").remove(); menu.remove(); await showIntroLogoThenIntro(); };
-  $("#startNo").onclick = ()=>{ $("#stage").innerHTML = `<div class="panel"><header><h1>終了</h1></header><div class="pbody">ご利用ありがとうございました。</div></div>`; };
+  // クリックでも進める保険
+  layer.addEventListener("click", startFlow, {once:true});
+
+  // 2秒後に自動開始
+  setTimeout(startFlow, 2000);
+
+  // 5秒ウォッチドッグ（念のため再実行）
+  setTimeout(()=>{ if(!started) startFlow(); }, 5000);
+}
+
+async function startFlow(){
+  if(started) return;
+  started = true;
+  $("#opLayer")?.remove();
+  await showIntroLogoThenIntro();
 }
 
 /* ========= 選手紹介！ロゴ → 2秒 → 紹介 ========= */
@@ -294,18 +283,13 @@ async function showIntroLogoThenIntro(){
 
 /* ========= 紹介（キャラ画像つき／高速表示） → オッズ/ベット ========= */
 async function showIntro(){
-  // プリロード完了を最長0.5秒だけ待つ（起動時の並列と合算でほぼキャッシュ済み）
-  await Promise.race([sleep(500), Promise.resolve()]);
+  await Promise.race([sleep(500), Promise.resolve()]); // プリロード待ち
 
   const wrap = el("div",{class:"panel", style:"width:min(900px,95vw)"},
     el("header",{}, el("h1",{},"選手紹介")),
     el("div",{class:"pbody scroll", id:"introList"}));
   $("#stage").innerHTML=""; $("#stage").appendChild(wrap);
   const list = $("#introList");
-
-  const skipBtn = el("button",{class:"btnPrimary btnBlock", id:"skipIntro"},"▶ スキップしてベットへ");
-  list.appendChild(skipBtn);
-  skipBtn.onclick = ()=> proceedToOddsAndBet();
 
   const head = el("div",{style:"text-align:center; margin:10px 0 6px 0"}, el("span",{class:"tag"},"2秒間 操作不可"));
   list.appendChild(head);
@@ -320,7 +304,6 @@ async function showIntro(){
   });
 
   for(const r of state.roster){
-    if(state.skipped) break;
     const card = el("div",{class:"paper", style:"margin-bottom:10px; display:flex; align-items:center; gap:14px"},
       (()=>{
         const src=IMG.runner[r.id]||"";
@@ -328,8 +311,7 @@ async function showIntro(){
         const im = el("img",{class:"chipImg", alt:r.name, style:"width:54px;height:54px"});
         im.loading = "eager"; im.decoding = "async"; im.fetchPriority = "high";
         im.onerror = ()=>{im.style.display="none";};
-        // 即時表示（キャッシュあれば置き換え、なければ通常読み込み）
-        if(cached){ im.src = cached.src; } else { im.src = src; }
+        im.src = cached?.src || src;
         return im;
       })(),
       el("div",{},
@@ -376,9 +358,8 @@ function computeFairProbs(roster){
 }
 function applyHouse(){ const cap=(x,min,max)=>Math.max(min,Math.min(max,x)); return p=> p<=0?99.99:cap((1/p)*(1-VIG),1.01,99.99); }
 
-/* ========= オッズ/ベット（白背景カード） ========= */
+/* ========= オッズ/ベット ========= */
 async function proceedToOddsAndBet(){
-  state.skipped=true;
   $("#stage").innerHTML = `<div class="panel paperWrap"><header><h1>オッズ&ベット</h1></header><div class="pbody">計算中…</div></div>`;
   const fair = computeFairProbs(state.roster); const toDec = applyHouse();
   state.odds = {
@@ -469,31 +450,17 @@ function renderBetForm(kind){
   }
   wrap.appendChild(form);
 
-  // 数字専用化
   ["win_amt","ex_amt","tri_amt"].forEach(id=>{
     const n=$("#"+id); if(n) numericOnly(n);
   });
 
-  // 既存値復元
   if(state.bets.win){ setSel("win_sel", state.bets.win.sel); $("#win_amt").value=state.bets.win.amt; }
   if(state.bets.ex){ setSel("ex_a", state.bets.ex.a); setSel("ex_b", state.bets.ex.b); $("#ex_amt").value=state.bets.ex.amt; }
   if(state.bets.tri){ ["a","b","c"].forEach(k=>setSel("tri_"+k, state.bets.tri[k])); $("#tri_amt").value=state.bets.tri.amt; }
 
-  // ハンドラ
-  if(kind==="win"){
-    $("#win_sel").oninput = saveBetWin;
-    $("#win_amt").oninput = saveBetWin;
-    saveBetWin();
-  }else if(kind==="ex"){
-    $("#ex_a").oninput = saveBetEx;
-    $("#ex_b").oninput = saveBetEx;
-    $("#ex_amt").oninput = saveBetEx;
-    saveBetEx();
-  }else{
-    ["tri_a","tri_b","tri_c"].forEach(id=>$("#"+id).oninput = saveBetTri);
-    $("#tri_amt").oninput = saveBetTri;
-    saveBetTri();
-  }
+  if(kind==="win"){ $("#win_sel").oninput = saveBetWin; $("#win_amt").oninput = saveBetWin; saveBetWin(); }
+  else if(kind==="ex"){ $("#ex_a").oninput = saveBetEx; $("#ex_b").oninput = saveBetEx; $("#ex_amt").oninput = saveBetEx; saveBetEx(); }
+  else { ["tri_a","tri_b","tri_c"].forEach(id=>$("#"+id).oninput = saveBetTri); $("#tri_amt").oninput = saveBetTri; saveBetTri(); }
 }
 function selectChar(id){
   const s = el("select",{id});
@@ -503,7 +470,6 @@ function selectChar(id){
 }
 function setSel(id,val){ if(val!=null) $("#"+id).value=String(val); }
 function sanitizeAmt(n){ n = Number.isFinite(n)?n:0; if(n<0)n=0; if(n>1000)n=1000; return Math.floor(n); }
-
 function saveBetWin(){
   const sel = +$("#win_sel").value||null;
   let amt = sanitizeAmt(parseInt($("#win_amt").value,10));
@@ -517,11 +483,7 @@ function saveBetEx(){
   const b = +$("#ex_b").value||null;
   let amt = sanitizeAmt(parseInt($("#ex_amt").value,10));
   $("#ex_amt").value=amt;
-  if(a && b && a!==b){
-    state.bets.ex = {type:"ex", a,b, amt};
-  } else {
-    state.bets.ex=null;
-  }
+  if(a && b && a!==b){ state.bets.ex = {type:"ex", a,b, amt}; } else { state.bets.ex=null; }
   updateReady();
 }
 function saveBetTri(){
@@ -530,17 +492,10 @@ function saveBetTri(){
   const c = +$("#tri_c").value||null;
   let amt = sanitizeAmt(parseInt($("#tri_amt").value,10));
   $("#tri_amt").value=amt;
-  if(a && b && c && a!==b && a!==c && b!==c){
-    state.bets.tri = {type:"tri", a,b,c, amt};
-  } else {
-    state.bets.tri=null;
-  }
+  if(a&&b&&c&&a!==b&&a!==c&&b!==c){ state.bets.tri = {type:"tri", a,b,c, amt}; } else { state.bets.tri=null; }
   updateReady();
 }
-function updateReady(){
-  const has = (state.bets.win && state.bets.win.sel) || state.bets.ex || state.bets.tri;
-  $("#btnReady")?.toggleAttribute("disabled", !has);
-}
+function updateReady(){ const has=(state.bets.win&&state.bets.win.sel)||state.bets.ex||state.bets.tri; $("#btnReady")?.toggleAttribute("disabled",!has); }
 
 /* ========= スタート前ロゴ → カウントダウン ========= */
 async function prepStart(){
@@ -549,7 +504,6 @@ async function prepStart(){
   $("#race").style.display="block"; $("#race").setAttribute("aria-hidden","false");
   $("#lanes").innerHTML=""; $("#flag").textContent="距離：0%";
 
-  // コース：レーン番号 & キャラ配置
   CAST.forEach(c=>{
     const lane = el("div",{class:"lane"});
     const num  = el("div",{class:"laneLabel"}, `Lane ${c.id}`);
@@ -578,9 +532,9 @@ async function startCountdown(){
 /* ========= レース本体（15〜20秒） ========= */
 async function runRace(){
   const lanesW = $("#lanes").clientWidth;
-  const goalPx = lanesW - 96; // 画像幅考慮
+  const goalPx = lanesW - 96;
   const TRACK = 1000;
-  const duration = 15000 + Math.random()*5000; // ★ 15〜20s
+  const duration = 15000 + Math.random()*5000;
   const avgTargetSpeed = TRACK / (duration/1000);
 
   const P = {};
@@ -610,7 +564,7 @@ async function runRace(){
         const global = (mid?1.05:1.0) * globalScale;
         const trouble = (Math.random()<0.015) ? (0.86 + 0.14*Math.random()) * (1 - (p.stab-1)*0.25) : 1.0;
         const vTarget = p.v * jitter * kick * global * trouble;
-        p.v += (vTarget - p.v) * 0.045;  // 少しレスポンスUP
+        p.v += (vTarget - p.v) * 0.045;
         p.v = Math.max(10, Math.min(p.v, p.vmax*globalScale*1.15));
         p.x += p.v * (dt/1000);
         if(p.x>TRACK) p.x=TRACK;
@@ -674,7 +628,7 @@ function askNext(){
       <div class="note" style="margin-top:10px">※「はい」で再び選手紹介からスタートします。</div>
     </div>
   </div>`;
-  $("#yes").onclick = ()=>{ state.skipped=false; showIntroLogoThenIntro(); };
+  $("#yes").onclick = ()=>{ started=false; startFlow(); };
   $("#no").onclick = ()=>{ $("#stage").innerHTML = `<div class="panel"><header><h1>終了</h1></header><div class="pbody">ご利用ありがとうございました。</div></div>`; };
 }
 
