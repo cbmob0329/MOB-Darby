@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>MOB Derby v6.7（OPに「ゲーム開始」ボタン）</title>
+<title>MOB Derby v6.8（OP即「ゲーム開始」ボタン）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <style>
   :root{
@@ -40,7 +40,13 @@
   .paper th:first-child,.paper td:first-child{text-align:left}
   .oddsImg{width:28px; height:28px; border-radius:6px; object-fit:contain; vertical-align:middle; margin-right:8px; background:#f3f4f6}
 
-  .splashLayer{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:50}
+  /* OPレイヤー：最初からボタン表示 */
+  .splashLayer{
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:18px;
+    background:#000; z-index:50
+  }
+  .opTitle{display:block; width:min(600px,80vw); height:auto}
   .fadeIn{animation:fadeIn 2s forwards}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
 
@@ -55,7 +61,7 @@
   .laneLabel{ position:absolute; left:8px; top:50%; transform:translateY(-50%); background:rgba(20,22,26,.85); color:#e5e7eb; border:1px solid #2b323d; font-size:12px; padding:2px 6px; border-radius:6px; z-index:2; }
   .runner{position:absolute; left:48px; top:50%; transform:translateY(-50%); width:48px; height:48px; display:flex; align-items:center; justify-content:center; z-index:3}
   .runner img{ width:100%; height:100%; object-fit:contain; image-rendering:auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,.45)); }
-  .flag{position:absolute; right:10px; top:120px; padding:6px 10px; border-radius:8px; background:#0f1319cc; border:1px solid #2b323d; color:var(--muted); font-size:12px; z-index:3}
+  .flag{position:absolute; right:10px; top:120px; padding:6px 10px; border-radius:8px; background:#0f1319cc; border:1px solid #2b323d; color:#9fb0c9; font-size:12px; z-index:3}
   .count{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); font-size:84px; font-weight:900; text-shadow:0 10px 30px rgba(0,0,0,.55); opacity:1; z-index:5; color:#ffffffcc}
   .centerLogo{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); z-index:6; pointer-events:none}
   .centerLogo img{width:min(480px,70vw); height:auto; display:block}
@@ -69,13 +75,13 @@
   .tab{flex:1; text-align:center; padding:10px; border:1px solid #d1d5db; border-radius:10px; cursor:pointer; user-select:none; font-size:13px; color:var(--inkDark); background:#fff}
   .tab.active{background:#f3f4f6}
   .stickyFooter{position:sticky; bottom:0; padding:12px; background:linear-gradient(180deg,rgba(20,22,26,0),#14161a 35%); display:flex; gap:10px}
-  .note{font-size:12px; color:var(--muted)}
+  .note{font-size:12px; color:#9fb0c9}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>MOB Derby v6.7</h1>
+    <h1>MOB Derby v6.8</h1>
     <button class="btn" id="btnReset">強制リセット</button>
   </header>
   <main id="stage"></main>
@@ -235,7 +241,7 @@ function numericOnly(input){
   });
 }
 
-/* ========= 起動（OPに「ゲーム開始」ボタン） ========= */
+/* ========= 起動（OP：最初からボタンを表示） ========= */
 document.addEventListener("DOMContentLoaded", ()=>{ init().catch(showErrorPanel); });
 
 async function init(){
@@ -244,20 +250,20 @@ async function init(){
   preloadAll(2000); // 並列プリロード
 
   const layer = el("div",{class:"splashLayer", id:"opLayer",
-    style:`background: url('${IMG.opBg}') center/cover no-repeat, radial-gradient(60% 60% at 50% 20%, #222 0%, #111 70%); display:flex; flex-direction:column; gap:22px;`},
-    el("div",{style:"text-align:center"},
-      el("img",{src:IMG.title, alt:"title", class:"fadeIn",
-                onerror:"this.style.display='none'; this.closest('div').querySelector('.fallbackTitle').style.display='block';",
-                style:"width:min(600px,80vw); height:auto; display:block; margin:0 auto;"}),
-      el("div",{class:"fallbackTitle", style:"display:none; color:#e6f0ff; font-size:28px; font-weight:900"},"MOB DERBY")
-    ),
-    el("div",{style:"text-align:center"},
-      el("button",{id:"startBtn", class:"btnPrimary", style:"font-size:20px; padding:16px 28px"}, "ゲーム開始")
-    ),
-    el("div",{style:"text-align:center; color:#cbd5e1; font-size:12px"}, "※ 進まない場合はこのボタンを押してください")
+    style:`background: url('${IMG.opBg}') center/cover no-repeat, radial-gradient(60% 60% at 50% 20%, #222 0%, #111 70%);`},
+    // タイトル画像（失敗してもボタンは下に出る）
+    el("img",{src:IMG.title, alt:"title", class:"opTitle fadeIn",
+              onerror:"this.style.display='none'"}),
+    // 最初から表示される開始ボタン（画像読み込みに依存しない）
+    el("button",{id:"startBtn", class:"btnPrimary", style:"font-size:20px; padding:16px 28px"}, "ゲーム開始"),
+    el("div",{style:"color:#cbd5e1; font-size:12px"}, "クリックで開始します")
   );
   $("#stage").appendChild(layer);
-
+  $("#startBtn").focus(); // すぐEnterで開始できる
+  // Enter/Spaceでも開始
+  layer.addEventListener("keydown", e=>{
+    if(e.key==="Enter"||e.key===" ") { e.preventDefault(); startFlow(); }
+  });
   $("#startBtn").onclick = startFlow;
 }
 
@@ -606,8 +612,8 @@ function showResult(){
 function settleBets(order){
   let total=0; const b=state.betsFinal||{}; const msgs=[];
   if(b.win){ const ok=(order[0]===b.win.sel); if(ok){ const odd=state.odds.win[b.win.sel]; const gain=Math.floor(b.win.amt*odd); total+=gain; msgs.push(`単勝 的中 +${gain}`);} else msgs.push("単勝 ハズレ"); }
-  if(b.ex){ const ok=(order[0]===b.ex.a && order[1]===b.ex.b); if(ok){ const key=\`\${b.ex.a}-\${b.ex.b}\`; const odd=state.odds.ex[key]||0; const gain=Math.floor(b.ex.amt*odd); total+=gain; msgs.push(\`2連 的中 +\${gain}\`);} else msgs.push("2連 ハズレ"); }
-  if(b.tri){ const ok=(order[0]===b.tri.a && order[1]===b.tri.b && order[2]===b.tri.c); if(ok){ const key=\`\${b.tri.a}-\${b.tri.b}-\${b.tri.c}\`; const odd=state.odds.tri[key]||0; const gain=Math.floor(b.tri.amt*odd); total+=gain; msgs.push(\`3連 的中 +\${gain}\`);} else msgs.push("3連 ハズレ"); }
+  if(b.ex){ const ok=(order[0]===b.ex.a && order[1]===b.ex.b); if(ok){ const key=`${b.ex.a}-${b.ex.b}`; const odd=state.odds.ex[key]||0; const gain=Math.floor(b.ex.amt*odd); total+=gain; msgs.push(`2連 的中 +${gain}`);} else msgs.push("2連 ハズレ"); }
+  if(b.tri){ const ok=(order[0]===b.tri.a && order[1]===b.tri.b && order[2]===b.tri.c); if(ok){ const key=`${b.tri.a}-${b.tri.b}-${b.tri.c}`; const odd=state.odds.tri[key]||0; const gain=Math.floor(b.tri.amt*odd); total+=gain; msgs.push(`3連 的中 +${gain}`);} else msgs.push("3連 ハズレ"); }
   return {payout:total, hitText: total>0? `的中！ ${total} コイン手に入れた！` : `残念！ハズレ！　(${msgs.join(" / ")})`};
 }
 function askNext(){
