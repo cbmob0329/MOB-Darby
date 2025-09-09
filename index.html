@@ -2,13 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>MOB Derby v6.8（OP即「ゲーム開始」ボタン）</title>
+<title>MOB Derby v6.9（紹介スキップ/注記削除）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <style>
   :root{
     --bg:#0e1014; --panel:#161b22; --ink:#f2f6ff; --muted:#9fb0c9;
-    --acc:#12c2ff; --ok:#47d764; --bad:#ff5c7a; --warn:#ffcf4d;
-    --paper:#ffffff; --inkDark:#0b0f14; --inkMid:#334155; --line:#e5e7eb;
+    --acc:#12c2ff; --ok:#47d764; --bad:#ff5c7a; --paper:#ffffff; --inkDark:#0b0f14; --inkMid:#334155; --line:#e5e7eb;
     --laneA:#8d939c; --laneB:#7f848d;
   }
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Sans","Yu Gothic",sans-serif}
@@ -22,7 +21,6 @@
   .panel header{border-radius:14px 14px 0 0}
   .pbody{padding:14px}
   .row{display:flex; gap:10px; flex-wrap:wrap}
-  .tag{display:inline-block; padding:2px 8px; border:1px solid #2b323d; border-radius:999px; font-size:12px; color:var(--muted)}
   .btnPrimary{background:var(--acc); color:#001018; border:0; border-radius:12px; padding:14px 22px; font-weight:800; letter-spacing:.5px; cursor:pointer}
   .btnGhost{background:#0f141a; color:var(--ink); border:1px solid #2b323d; border-radius:12px; padding:12px 18px; font-weight:700; cursor:pointer}
   .btnBlock{display:block; width:100%}
@@ -33,7 +31,6 @@
   .paperWrap{background:transparent}
   .paper{background:var(--paper); color:var(--inkDark); border:1px solid var(--line); border-radius:14px; padding:14px}
   .paper h2{margin:6px 0 10px 0; font-size:18px}
-  .paper .note{color:#6b7280}
   .paper input,.paper select{background:#fff; color:var(--inkDark); border:1px solid #cbd5e1; border-radius:8px; padding:10px 12px; width:100%}
   .paper table{width:100%; border-collapse:collapse; font-size:13px}
   .paper th,.paper td{border-bottom:1px solid #e5e7eb; padding:8px 6px; text-align:center}
@@ -49,6 +46,14 @@
   .opTitle{display:block; width:min(600px,80vw); height:auto}
   .fadeIn{animation:fadeIn 2s forwards}
   @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+
+  /* 紹介スキップボタン（右上固定） */
+  .skipBtn{
+    position:fixed; right:12px; top:60px; z-index:60;
+    background:#0f141a; color:var(--ink); border:1px solid #2b323d;
+    border-radius:999px; padding:10px 14px; font-weight:800; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
 
   #race{position:absolute; inset:0; display:none}
   #lanesWrap{position:absolute; left:0; right:0; bottom:0; top:140px; overflow:hidden; background:#14161a}
@@ -75,13 +80,12 @@
   .tab{flex:1; text-align:center; padding:10px; border:1px solid #d1d5db; border-radius:10px; cursor:pointer; user-select:none; font-size:13px; color:var(--inkDark); background:#fff}
   .tab.active{background:#f3f4f6}
   .stickyFooter{position:sticky; bottom:0; padding:12px; background:linear-gradient(180deg,rgba(20,22,26,0),#14161a 35%); display:flex; gap:10px}
-  .note{font-size:12px; color:#9fb0c9}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>MOB Derby v6.8</h1>
+    <h1>MOB Derby v6.9</h1>
     <button class="btn" id="btnReset">強制リセット</button>
   </header>
   <main id="stage"></main>
@@ -182,27 +186,12 @@ function showErrorPanel(msg){
   $("#continueBtn").onclick = ()=>{ $("#stage").innerHTML=""; init().catch(showErrorPanel); };
 }
 
-/* ========= ユーティリティ ========= */
-function safeApplyStyle(styleObj, targetStyle){
-  try{
-    if (!styleObj) return;
-    if (typeof styleObj === "string") { targetStyle.cssText = styleObj; return; }
-    if (typeof CSSStyleDeclaration!=="undefined" && styleObj instanceof CSSStyleDeclaration){
-      targetStyle.cssText = styleObj.cssText||""; return;
-    }
-    if (Array.isArray(styleObj)) return;
-    if (typeof styleObj === "object"){
-      for (const [k,v] of Object.entries(styleObj)) {
-        try{ (k in targetStyle) ? targetStyle[k]=v : targetStyle.setProperty(k,v); }catch{}
-      }
-    }
-  }catch{}
-}
+/* ========= DOM/小物 ========= */
 function el(tag, attrs={}, ...kids){
   const n = document.createElement(tag);
   for (const [k,v] of Object.entries(attrs||{})) {
     if (k==="class") n.className=v;
-    else if (k==="style") safeApplyStyle(v, n.style);
+    else if (k==="style") n.style.cssText = typeof v==="string" ? v : "";
     else if (k==="onerror") n.onerror=()=>{try{eval(v)}catch{}};
     else n.setAttribute(k,v);
   }
@@ -241,58 +230,49 @@ function numericOnly(input){
   });
 }
 
-/* ========= 起動（OP：最初からボタンを表示） ========= */
+/* ========= 起動（OP：最初から開始ボタン） ========= */
 document.addEventListener("DOMContentLoaded", ()=>{ init().catch(showErrorPanel); });
 
 async function init(){
   $("#race").style.display="none"; $("#race").setAttribute("aria-hidden","true");
   $("#stage").innerHTML = "";
-  preloadAll(2000); // 並列プリロード
+  preloadAll(2000);
 
   const layer = el("div",{class:"splashLayer", id:"opLayer",
     style:`background: url('${IMG.opBg}') center/cover no-repeat, radial-gradient(60% 60% at 50% 20%, #222 0%, #111 70%);`},
-    // タイトル画像（失敗してもボタンは下に出る）
-    el("img",{src:IMG.title, alt:"title", class:"opTitle fadeIn",
-              onerror:"this.style.display='none'"}),
-    // 最初から表示される開始ボタン（画像読み込みに依存しない）
-    el("button",{id:"startBtn", class:"btnPrimary", style:"font-size:20px; padding:16px 28px"}, "ゲーム開始"),
-    el("div",{style:"color:#cbd5e1; font-size:12px"}, "クリックで開始します")
+    el("img",{src:IMG.title, alt:"title", class:"opTitle fadeIn", onerror:"this.style.display='none'"}),
+    el("button",{id:"startBtn", class:"btnPrimary", style:"font-size:20px; padding:16px 28px"}, "ゲーム開始")
   );
   $("#stage").appendChild(layer);
-  $("#startBtn").focus(); // すぐEnterで開始できる
-  // Enter/Spaceでも開始
-  layer.addEventListener("keydown", e=>{
-    if(e.key==="Enter"||e.key===" ") { e.preventDefault(); startFlow(); }
-  });
   $("#startBtn").onclick = startFlow;
 }
 
+/* ========= 進行 ========= */
 async function startFlow(){
   $("#opLayer")?.remove();
   await showIntroLogoThenIntro();
 }
 
-/* ========= 選手紹介！ロゴ → 2秒 → 紹介 ========= */
+/* ========= 選手紹介！ロゴ（ここでもスキップ可） ========= */
+let introCancelled = false;
 async function showIntroLogoThenIntro(){
-  const logo = el("div",{class:"centerLogo"},
+  introCancelled = false;
+  const logo = el("div",{class:"centerLogo", id:"introLogoBox"},
     el("img",{src:IMG.introLogo, alt:"intro", onerror:"this.style.display='none'; this.parentElement.innerHTML='<div style=color:#fff;font-size:32px;font-weight:900>選手紹介！</div>';"}));
+  const skip = makeSkipButton();
   $("#stage").appendChild(logo);
-  await sleep(2000); logo.remove(); await showIntro();
+  $("#stage").appendChild(skip);
+
+  // 2秒待機 or 即スキップ
+  const until = Date.now()+2000;
+  while(Date.now()<until && !introCancelled){ await sleep(50); }
+  if(introCancelled){ skip.remove(); logo.remove(); return; }
+  logo.remove();
+  await showIntro(skip); // スキップボタンは引き継ぐ
 }
 
-/* ========= 紹介（キャラ画像つき／高速表示） → オッズ/ベット ========= */
-async function showIntro(){
-  await Promise.race([sleep(500), Promise.resolve()]); // プリロード待ち
-
-  const wrap = el("div",{class:"panel", style:"width:min(900px,95vw)"},
-    el("header",{}, el("h1",{},"選手紹介")),
-    el("div",{class:"pbody scroll", id:"introList"}));
-  $("#stage").innerHTML=""; $("#stage").appendChild(wrap);
-  const list = $("#introList");
-
-  const head = el("div",{style:"text-align:center; margin:10px 0 6px 0"}, el("span",{class:"tag"},"2秒間 操作不可"));
-  list.appendChild(head);
-
+/* ========= 紹介本体（スキップ可能／注記削除） ========= */
+async function showIntro(skipBtn){
   // 調子決定
   state.roster = CAST.map(c=>{
     let weights=[1,2,5,2,1];
@@ -302,32 +282,57 @@ async function showIntro(){
     return {...c, mood, line: pickLine(mood)};
   });
 
+  const wrap = el("div",{class:"panel", style:"width:min(900px,95vw)"},
+    el("header",{}, el("h1",{},"選手紹介")),
+    el("div",{class:"pbody scroll", id:"introList"}));
+  $("#stage").innerHTML=""; $("#stage").appendChild(wrap);
+  if(skipBtn && !document.body.contains(skipBtn)) $("#stage").appendChild(skipBtn);
+
+  const list = $("#introList");
   for(const r of state.roster){
+    if(introCancelled) break;
     const card = el("div",{class:"paper", style:"margin-bottom:10px; display:flex; align-items:center; gap:14px"},
-      (()=>{
+      (()=>{ // 画像
         const src=IMG.runner[r.id]||"";
         const cached = PRELOADED[src];
         const im = el("img",{class:"chipImg", alt:r.name, style:"width:54px;height:54px"});
         im.loading = "eager"; im.decoding = "async"; im.fetchPriority = "high";
         im.onerror = ()=>{im.style.display="none";};
-        im.src = cached?.src || src;
-        return im;
+        im.src = cached?.src || src; return im;
       })(),
       el("div",{},
         (()=>{
           const c=el("div",{class:"chip"});
-          const dot=el("span",{class:"dot", style:`background:${r.color}`}); c.appendChild(dot);
+          const dot=el("span",{class:"dot", style:`background:${r.color}; width:18px; height:18px; border-radius:6px; display:inline-block; margin-right:8px`});
+          c.appendChild(dot);
           c.appendChild(document.createTextNode(` ${r.id}. ${r.name}`));
           return c;
         })(),
-        el("div",{style:"font-size:18px; margin-top:6px; color:var(--inkMid)"}, r.line),
-        el("div",{class:"note", style:"margin-top:4px"},"※ 調子は画面に表示されません（セリフから推測）")
+        el("div",{style:"font-size:18px; margin-top:6px; color:var(--inkMid)"}, r.line)
       )
     );
     list.appendChild(card);
-    await sleep(2000);
+    // 2秒待つが、スキップ時は即抜け
+    const until = Date.now()+2000;
+    while(Date.now()<until && !introCancelled){ await sleep(50); }
   }
-  await proceedToOddsAndBet();
+  if(!introCancelled){
+    skipBtn?.remove();
+    await proceedToOddsAndBet();
+  }
+}
+
+/* ========= スキップボタン ========= */
+function makeSkipButton(){
+  const b = el("button",{class:"skipBtn", id:"skipIntroBtn"},"スキップ");
+  b.onclick = ()=>{
+    introCancelled = true;
+    // すぐにベット画面へ
+    $("#introLogoBox")?.remove();
+    $("#skipIntroBtn")?.remove();
+    proceedToOddsAndBet();
+  };
+  return b;
 }
 
 /* ========= オッズ計算（Plackett–Luce） ========= */
@@ -360,7 +365,7 @@ function applyHouse(){ const cap=(x,min,max)=>Math.max(min,Math.min(max,x)); ret
 /* ========= オッズ/ベット ========= */
 async function proceedToOddsAndBet(){
   $("#stage").innerHTML = `<div class="panel paperWrap"><header><h1>オッズ&ベット</h1></header><div class="pbody">計算中…</div></div>`;
-  const fair = computeFairProbs(state.roster); const toDec = applyHouse();
+  const fair = computeFairProbs(state.roster||CAST); const toDec = applyHouse();
   state.odds = {
     win: Object.fromEntries(Object.entries(fair.pWin).map(([id,p])=>[id, toDec(p)])),
     ex:  Object.fromEntries(Object.entries(fair.pEx).map(([k,p])=>[k, toDec(p)])),
@@ -377,7 +382,6 @@ function showBetUI(){
         <div class="paper">
           <h2>単勝オッズ（参考）</h2>
           ${oddsTable}
-          <div class="note" style="margin-top:8px">※2連/3連の組み合わせオッズは非表示（内部計算のみ）</div>
         </div>
 
         <div class="paper">
@@ -388,7 +392,7 @@ function showBetUI(){
             <div class="tab" data-tab="tri">3連（1→2→3）</div>
           </div>
           <div id="betWrap"></div>
-          <div class="note" style="margin-top:6px">各種ベットは最大1000コインまで。</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:6px">各種ベットは最大1000コインまで。</div>
         </div>
 
         <div class="stickyFooter" style="gap:10px">
@@ -428,7 +432,7 @@ function renderBetForm(kind){
       selectChar("win_sel"),
       el("label",{},"ベット額（0〜1000）"),
       el("input",{type:"number", inputmode:"numeric", pattern:"[0-9]*", step:"1", id:"win_amt", min:0, max:1000, value: state.bets.win?.amt??0}),
-      el("div",{class:"note", id:"win_od"},"選択中のオッズ：—")
+      el("div",{style:"font-size:12px; color:#6b7280", id:"win_od"},"選択中のオッズ：—")
     );
   }else if(kind==="ex"){
     form = el("div",{},
@@ -436,7 +440,7 @@ function renderBetForm(kind){
       el("div",{class:"row"}, selectChar("ex_a"), selectChar("ex_b")),
       el("label",{},"ベット額（0〜1000）"),
       el("input",{type:"number", inputmode:"numeric", pattern:"[0-9]*", step:"1", id:"ex_amt", min:0, max:1000, value: state.bets.ex?.amt??0}),
-      el("div",{class:"note"},"組み合わせオッズは非表示です")
+      el("div",{style:"font-size:12px; color:#6b7280"},"組み合わせオッズは非表示です")
     );
   }else{
     form = el("div",{},
@@ -444,14 +448,12 @@ function renderBetForm(kind){
       el("div",{class:"row"}, selectChar("tri_a"), selectChar("tri_b"), selectChar("tri_c")),
       el("label",{},"ベット額（0〜1000）"),
       el("input",{type:"number", inputmode:"numeric", pattern:"[0-9]*", step:"1", id:"tri_amt", min:0, max:1000, value: state.bets.tri?.amt??0}),
-      el("div",{class:"note"},"組み合わせオッズは非表示です")
+      el("div",{style:"font-size:12px; color:#6b7280"},"組み合わせオッズは非表示です")
     );
   }
   wrap.appendChild(form);
 
-  ["win_amt","ex_amt","tri_amt"].forEach(id=>{
-    const n=$("#"+id); if(n) numericOnly(n);
-  });
+  ["win_amt","ex_amt","tri_amt"].forEach(id=>{ const n=$("#"+id); if(n) numericOnly(n); });
 
   if(state.bets.win){ setSel("win_sel", state.bets.win.sel); $("#win_amt").value=state.bets.win.amt; }
   if(state.bets.ex){ setSel("ex_a", state.bets.ex.a); setSel("ex_b", state.bets.ex.b); $("#ex_amt").value=state.bets.ex.amt; }
@@ -604,7 +606,7 @@ function showResult(){
     <div class="pbody">
       <div class="resultList">${list}</div>
       <div class="pay ${payout>0?'good':'bad'}">${hitText}</div>
-      <div class="note" style="margin-top:6px">※ 2秒後に「次のレースに進みますか？」が表示されます。</div>
+      <div style="font-size:12px; color:#9fb0c9; margin-top:6px">※ 2秒後に「次のレースに進みますか？」が表示されます。</div>
     </div>
   </div>`;
   setTimeout(askNext,2000);
@@ -612,8 +614,8 @@ function showResult(){
 function settleBets(order){
   let total=0; const b=state.betsFinal||{}; const msgs=[];
   if(b.win){ const ok=(order[0]===b.win.sel); if(ok){ const odd=state.odds.win[b.win.sel]; const gain=Math.floor(b.win.amt*odd); total+=gain; msgs.push(`単勝 的中 +${gain}`);} else msgs.push("単勝 ハズレ"); }
-  if(b.ex){ const ok=(order[0]===b.ex.a && order[1]===b.ex.b); if(ok){ const key=`${b.ex.a}-${b.ex.b}`; const odd=state.odds.ex[key]||0; const gain=Math.floor(b.ex.amt*odd); total+=gain; msgs.push(`2連 的中 +${gain}`);} else msgs.push("2連 ハズレ"); }
-  if(b.tri){ const ok=(order[0]===b.tri.a && order[1]===b.tri.b && order[2]===b.tri.c); if(ok){ const key=`${b.tri.a}-${b.tri.b}-${b.tri.c}`; const odd=state.odds.tri[key]||0; const gain=Math.floor(b.tri.amt*odd); total+=gain; msgs.push(`3連 的中 +${gain}`);} else msgs.push("3連 ハズレ"); }
+  if(b.ex){ const ok=(order[0]===b.ex.a && order[1]===b.ex.b); if(ok){ const key=\`\${b.ex.a}-\${b.ex.b}\`; const odd=state.odds.ex[key]||0; const gain=Math.floor(b.ex.amt*odd); total+=gain; msgs.push(\`2連 的中 +\${gain}\`);} else msgs.push("2連 ハズレ"); }
+  if(b.tri){ const ok=(order[0]===b.tri.a && order[1]===b.tri.b && order[2]===b.tri.c); if(ok){ const key=\`\${b.tri.a}-\${b.tri.b}-\${b.tri.c}\`; const odd=state.odds.tri[key]||0; const gain=Math.floor(b.tri.amt*odd); total+=gain; msgs.push(\`3連 的中 +\${gain}\`);} else msgs.push("3連 ハズレ"); }
   return {payout:total, hitText: total>0? `的中！ ${total} コイン手に入れた！` : `残念！ハズレ！　(${msgs.join(" / ")})`};
 }
 function askNext(){
@@ -624,7 +626,7 @@ function askNext(){
         <button class="btnPrimary" id="yes">はい</button>
         <button class="btnGhost" id="no">いいえ</button>
       </div>
-      <div class="note" style="margin-top:10px">※「はい」で再び選手紹介からスタートします。</div>
+      <div style="font-size:12px; color:#9fb0c9; margin-top:10px">※「はい」で再び選手紹介からスタートします。</div>
     </div>
   </div>`;
   $("#yes").onclick = ()=>{ showIntroLogoThenIntro(); };
